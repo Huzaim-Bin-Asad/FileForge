@@ -12,7 +12,7 @@ Drop in a file, pick a target format, and get a converted copy back. Conversions
 | PDF ↔ Markdown     | ✅ Supported   |
 | Word ↔ Markdown    | ✅ Supported   |
 | TXT ↔ PDF          | ✅ Supported   |
-| PDF ↔ Word         | 🚧 Planned     |
+| PDF ↔ Word         | ✅ Supported   |
 | PDF ↔ Excel        | 🚧 Planned     |
 | PDF ↔ PowerPoint   | 🚧 Planned     |
 | EPUB ↔ PDF         | 🚧 Planned     |

@@ -83,3 +83,17 @@ export async function markdownToDocx(buffer: Buffer, filename: string): Promise<
   const docxBuffer = await markdownToDocxBuffer(buffer.toString("utf-8"));
   return toResult(docxBuffer, filename, "docx");
 }
+
+export async function docxToPdf(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const markdown = await extractDocxAsMarkdown(buffer);
+  const blocks = parseMarkdown(markdown);
+  const pdfBuffer = await renderLinesToPdf(markdownBlocksToRenderLines(blocks));
+  return toResult(pdfBuffer, filename, "pdf");
+}
+
+export async function pdfToDocx(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const text = await extractPdfText(buffer);
+  const markdown = plainTextToMarkdown(text);
+  const docxBuffer = await markdownToDocxBuffer(markdown);
+  return toResult(docxBuffer, filename, "docx");
+}

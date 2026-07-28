@@ -2,11 +2,21 @@ import { PDFParse } from "pdf-parse";
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import type { RenderLine } from "./types";
 
+/**
+ * Strips characters that are illegal in XML 1.0 (e.g. NUL bytes that some
+ * PDFs' font encodings decode to for glyphs pdf-parse can't map). Left in,
+ * these corrupt document.xml when the text is later embedded in a .docx.
+ */
+function stripXmlIllegalChars(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, "");
+}
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
-    return result.text;
+    return stripXmlIllegalChars(result.text);
   } finally {
     await parser.destroy();
   }

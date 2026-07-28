@@ -8,6 +8,8 @@ import {
   pdfToHtml,
   docxToMarkdown,
   markdownToDocx,
+  docxToPdf,
+  pdfToDocx,
 } from "./converters";
 
 export class ConversionError extends Error {
@@ -44,7 +46,10 @@ const CONVERSION_REGISTRY: Record<string, ConversionDefinition> = {
     supported: true,
     handlers: { docx: docxToMarkdown, md: markdownToDocx },
   },
-  "pdf-word": { supported: false, handlers: {} },
+  "pdf-word": {
+    supported: true,
+    handlers: { pdf: pdfToDocx, docx: docxToPdf },
+  },
   "pdf-excel": { supported: false, handlers: {} },
   "pdf-powerpoint": { supported: false, handlers: {} },
   "epub-pdf": { supported: false, handlers: {} },

@@ -12,7 +12,7 @@ export const CATEGORY_ICONS: Record<ConversionCategory, string> = {
 };
 
 export const CONVERSION_OPTIONS: ConversionOption[] = [
-  { value: "pdf-word", label: "PDF ↔ Word", category: "Documents", supported: false },
+  { value: "pdf-word", label: "PDF ↔ Word", category: "Documents", supported: true },
   { value: "pdf-excel", label: "PDF ↔ Excel", category: "Documents", supported: false },
   { value: "pdf-powerpoint", label: "PDF ↔ PowerPoint", category: "Documents", supported: false },
   { value: "pdf-html", label: "PDF ↔ HTML", category: "Documents", supported: true },
