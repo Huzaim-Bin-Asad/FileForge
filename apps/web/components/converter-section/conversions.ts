@@ -13,12 +13,12 @@ export const CATEGORY_ICONS: Record<ConversionCategory, string> = {
 
 export const CONVERSION_OPTIONS: ConversionOption[] = [
   { value: "pdf-word", label: "PDF ↔ Word", category: "Documents", supported: true },
-  { value: "pdf-excel", label: "PDF ↔ Excel", category: "Documents", supported: false },
-  { value: "pdf-powerpoint", label: "PDF ↔ PowerPoint", category: "Documents", supported: false },
+  { value: "pdf-excel", label: "PDF ↔ Excel", category: "Documents", supported: true },
+  { value: "pdf-powerpoint", label: "PDF ↔ PowerPoint", category: "Documents", supported: true },
   { value: "pdf-html", label: "PDF ↔ HTML", category: "Documents", supported: true },
   { value: "pdf-markdown", label: "PDF ↔ Markdown", category: "Documents", supported: true },
   { value: "word-markdown", label: "Word ↔ Markdown", category: "Documents", supported: true },
-  { value: "epub-pdf", label: "EPUB ↔ PDF", category: "Documents", supported: false },
+  { value: "epub-pdf", label: "EPUB ↔ PDF", category: "Documents", supported: true },
   { value: "txt-pdf", label: "TXT ↔ PDF", category: "Documents", supported: true },
 ];
 

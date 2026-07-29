@@ -13,8 +13,8 @@ Drop in a file, pick a target format, and get a converted copy back. Conversions
 | Word ↔ Markdown    | ✅ Supported   |
 | TXT ↔ PDF          | ✅ Supported   |
 | PDF ↔ Word         | ✅ Supported   |
-| PDF ↔ Excel        | 🚧 Planned     |
-| PDF ↔ PowerPoint   | 🚧 Planned     |
+| PDF ↔ Excel        | ✅ Supported   |
+| PDF ↔ PowerPoint   | ✅ Supported   |
 | EPUB ↔ PDF         | 🚧 Planned     |
 
 ## Project structure
@@ -64,6 +64,8 @@ pnpm format        # format the codebase with Prettier
 - [Turborepo](https://turborepo.dev/) for monorepo task orchestration
 - [pdf-lib](https://github.com/Hopding/pdf-lib) / [pdf-parse](https://www.npmjs.com/package/pdf-parse) for PDF generation and text extraction
 - [docx](https://github.com/dolanmiu/docx) / [mammoth](https://github.com/mwilliamson/mammoth.js) for Word document conversion
+- [exceljs](https://github.com/exceljs/exceljs) for Excel document conversion
+- [pptxgenjs](https://gitbrent.github.io/PptxGenJS/) / [jszip](https://stuk.github.io/jszip/) for PowerPoint document conversion
 - Tailwind CSS for styling
 
 ## Contributing

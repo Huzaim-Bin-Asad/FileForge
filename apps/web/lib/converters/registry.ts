@@ -1,4 +1,4 @@
-import type { ConversionResult } from "./types";
+import type { ConversionResult, ConvertedFile } from "./types";
 import {
   txtToPdf,
   pdfToTxt,
@@ -10,6 +10,12 @@ import {
   markdownToDocx,
   docxToPdf,
   pdfToDocx,
+  xlsxToPdf,
+  pdfToXlsx,
+  pptxToPdf,
+  pdfToPptx,
+  epubToPdf,
+  pdfToEpub,
 } from "./converters";
 
 export class ConversionError extends Error {
@@ -50,9 +56,18 @@ const CONVERSION_REGISTRY: Record<string, ConversionDefinition> = {
     supported: true,
     handlers: { pdf: pdfToDocx, docx: docxToPdf },
   },
-  "pdf-excel": { supported: false, handlers: {} },
-  "pdf-powerpoint": { supported: false, handlers: {} },
-  "epub-pdf": { supported: false, handlers: {} },
+  "pdf-excel": {
+    supported: true,
+    handlers: { pdf: pdfToXlsx, xlsx: xlsxToPdf },
+  },
+  "pdf-powerpoint": {
+    supported: true,
+    handlers: { pdf: pdfToPptx, pptx: pptxToPdf },
+  },
+  "epub-pdf": {
+    supported: true,
+    handlers: { epub: epubToPdf, pdf: pdfToEpub },
+  },
 };
 
 function getExtension(filename: string): string {
@@ -64,7 +79,7 @@ export async function convertFile(
   conversionType: string,
   buffer: Buffer,
   filename: string
-): Promise<ConversionResult> {
+): Promise<ConvertedFile> {
   const definition = CONVERSION_REGISTRY[conversionType];
 
   if (!definition) {
@@ -78,8 +93,8 @@ export async function convertFile(
     );
   }
 
-  const extension = getExtension(filename);
-  const handler = definition.handlers[extension];
+  const sourceFormat = getExtension(filename);
+  const handler = definition.handlers[sourceFormat];
 
   if (!handler) {
     const expected = Object.keys(definition.handlers)
@@ -91,5 +106,11 @@ export async function convertFile(
     );
   }
 
-  return handler(buffer, filename);
+  const result = await handler(buffer, filename);
+
+  return {
+    ...result,
+    sourceFormat,
+    targetFormat: getExtension(result.filename),
+  };
 }

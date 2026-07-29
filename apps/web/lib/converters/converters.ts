@@ -1,7 +1,10 @@
 import { extractPdfText, renderLinesToPdf, textToPdfBuffer } from "./pdf";
 import { parseMarkdown, markdownBlocksToRenderLines, plainTextToMarkdown } from "./markdown";
-import { escapeHtml, htmlToPlainText } from "./html";
+import { escapeHtml, htmlToPlainText } from "./html";         
 import { extractDocxAsMarkdown, markdownToDocxBuffer } from "./word";
+import { xlsxToPdfBuffer, pdfToXlsxBuffer } from "./excel";
+import { pdfToPptxBuffer, pptxToPdfBuffer } from "./powerpoint";
+import { epubToPdfBuffer, pdfToEpubBuffer } from "./epub";
 import type { ConversionResult } from "./types";
 
 function withExtension(filename: string, extension: string): string {
@@ -17,6 +20,9 @@ const MIME_TYPES = {
   md: "text/markdown",
   html: "text/html",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  epub: "application/epub+zip",
 } as const;
 
 function toResult(
@@ -96,4 +102,34 @@ export async function pdfToDocx(buffer: Buffer, filename: string): Promise<Conve
   const markdown = plainTextToMarkdown(text);
   const docxBuffer = await markdownToDocxBuffer(markdown);
   return toResult(docxBuffer, filename, "docx");
+}
+
+export async function xlsxToPdf(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const pdfBuffer = await xlsxToPdfBuffer(buffer);
+  return toResult(pdfBuffer, filename, "pdf");
+}
+
+export async function pdfToXlsx(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const xlsxBuffer = await pdfToXlsxBuffer(buffer);
+  return toResult(xlsxBuffer, filename, "xlsx");
+}
+
+export async function pptxToPdf(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const pdfBuffer = await pptxToPdfBuffer(buffer);
+  return toResult(pdfBuffer, filename, "pdf");
+}
+
+export async function pdfToPptx(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const pptxBuffer = await pdfToPptxBuffer(buffer);
+  return toResult(pptxBuffer, filename, "pptx");
+}
+
+export async function epubToPdf(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const pdfBuffer = await epubToPdfBuffer(buffer);
+  return toResult(pdfBuffer, filename, "pdf");
+}
+
+export async function pdfToEpub(buffer: Buffer, filename: string): Promise<ConversionResult> {
+  const epubBuffer = await pdfToEpubBuffer(buffer);
+  return toResult(epubBuffer, filename, "epub");
 }

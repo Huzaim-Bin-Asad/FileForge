@@ -7,8 +7,7 @@ import type { RenderLine } from "./types";
  * PDFs' font encodings decode to for glyphs pdf-parse can't map). Left in,
  * these corrupt document.xml when the text is later embedded in a .docx.
  */
-function stripXmlIllegalChars(text: string): string {
-  // eslint-disable-next-line no-control-regex
+export function stripXmlIllegalChars(text: string): string {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/g, "");
 }
 
@@ -57,6 +56,11 @@ export async function renderLinesToPdf(blocks: RenderLine[]): Promise<Buffer> {
   let y = PAGE_HEIGHT - MARGIN;
 
   for (const block of blocks) {
+    if (block.pageBreakBefore && y < PAGE_HEIGHT - MARGIN) {
+      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN;
+    }
+
     const size = block.size ?? 11;
     const font = block.bold ? boldFont : regularFont;
     const wrapped = wrapLine(block.text, font, size, maxWidth);
