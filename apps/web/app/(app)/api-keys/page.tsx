@@ -16,7 +16,6 @@ export default async function ApiKeysPage() {
 
   return (
     <WorkspaceShell
-      active="api-keys"
       title="API Keys"
       subtitle="Generate keys and wire FileForge into your own pipeline."
       action={

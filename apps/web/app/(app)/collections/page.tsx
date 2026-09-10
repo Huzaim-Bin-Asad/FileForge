@@ -16,7 +16,6 @@ export default async function CollectionsPage() {
 
   return (
     <WorkspaceShell
-      active="collections"
       title="Collections"
       subtitle="Group related files and reuse the same output settings across a batch."
       action={

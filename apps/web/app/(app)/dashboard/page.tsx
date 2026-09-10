@@ -57,7 +57,6 @@ export default async function DashboardPage() {
 
   return (
     <WorkspaceShell
-      active="dashboard"
       title="Welcome back"
       subtitle={user.email}
       action={
