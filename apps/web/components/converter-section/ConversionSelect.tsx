@@ -18,10 +18,7 @@ export default function ConversionSelect({ value, onChange }: ConversionSelectPr
 
   return (
     <div>
-      <label
-        htmlFor="conversion-type"
-        className="mb-2 block text-sm font-medium text-slate-700"
-      >
+      <label htmlFor="conversion-type" className="mb-2 block text-sm font-medium text-ink">
         Conversion type
       </label>
       <div className="relative">
@@ -29,7 +26,7 @@ export default function ConversionSelect({ value, onChange }: ConversionSelectPr
           id="conversion-type"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 py-3 pr-10 text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full appearance-none rounded-md border border-line bg-surface-elevated px-4 py-3 pr-10 text-ink transition focus:border-ember focus:outline-none focus:ring-2 focus:ring-ember/15"
         >
           {categories.map((category) => (
             <optgroup
@@ -45,24 +42,19 @@ export default function ConversionSelect({ value, onChange }: ConversionSelectPr
                   disabled={!option.supported}
                 >
                   {option.label}
-                  {!option.supported ? " — coming soon" : ""}
+                  {!option.supported ? ", coming soon" : ""}
                 </option>
               ))}
             </optgroup>
           ))}
         </select>
         <svg
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
     </div>

@@ -1,9 +1,23 @@
-import ConverterSection from "@/components/converter-section/ConverterSection";
+import Hero from "@/components/site/Hero";
+import Workflow from "@/components/site/Workflow";
+import Tools from "@/components/site/Tools";
+import Features from "@/components/site/Features";
+import ApiSection from "@/components/site/ApiSection";
+import DashboardPreview from "@/components/site/DashboardPreview";
+import Pricing from "@/components/site/Pricing";
+import Faq from "@/components/site/Faq";
 
 export default function Home() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-8">
-      <ConverterSection />
+    <div className="relative min-h-screen overflow-x-hidden bg-surface">
+      <Hero />
+      <Workflow />
+      <Tools />
+      <Features />
+      <ApiSection />
+      <DashboardPreview />
+      <Pricing />
+      <Faq />
     </div>
   );
 }

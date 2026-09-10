@@ -6,9 +6,15 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Alert from "@/components/ui/Alert";
 
-export default function DeleteAccountForm() {
+interface DeleteAccountFormProps {
+  /** When false, the account has no password (Google-only) and confirms with DELETE. */
+  hasPassword?: boolean;
+}
+
+export default function DeleteAccountForm({ hasPassword = true }: DeleteAccountFormProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +27,9 @@ export default function DeleteAccountForm() {
       const response = await fetch("/api/account", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(
+          hasPassword ? { password } : { confirmation }
+        ),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -52,14 +60,23 @@ export default function DeleteAccountForm() {
         This permanently deletes your account and conversion history. This
         can&apos;t be undone.
       </Alert>
-      <Input
-        label="Confirm your password"
-        type="password"
-        autoComplete="current-password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
+      {hasPassword ? (
+        <Input
+          label="Confirm your password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      ) : (
+        <Input
+          label='Type DELETE to confirm'
+          value={confirmation}
+          onChange={(e) => setConfirmation(e.target.value)}
+          required
+        />
+      )}
       <div className="flex gap-3">
         <Button type="submit" variant="danger" loading={loading}>
           Permanently delete

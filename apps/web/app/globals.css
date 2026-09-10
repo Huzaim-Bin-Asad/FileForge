@@ -1,26 +1,446 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #16131a;
+  --ink-muted: #5f5668;
+  --surface: #f7f3ee;
+  --surface-elevated: #fffcf8;
+  --line: #e4dcd2;
+  --ember: #e4572e;
+  --ember-deep: #c2411a;
+  --ember-soft: #ffe8df;
+  --copper: #d97745;
+  --gold: #c9922e;
+  --steel: #2f3f52;
+  --steel-soft: #e8eef4;
+  --success: #1f7a4c;
+  --success-soft: #e8f6ee;
+  --danger: #c0392b;
+  --danger-soft: #fdecea;
+  --forge-deep: #3a1c14;
+  --forge-deep-elevated: #4a261c;
+  --section-sand: #f2e9df;
+  --section-peach: #fff1e8;
+  --section-copper: #f6e6d8;
+  --section-mist: #ffe9df;
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --muted-foreground: var(--ink-muted);
+  --border: var(--line);
+  --primary: var(--ember);
+  --primary-foreground: #ffffff;
+  --secondary: var(--steel-soft);
+  --radius: 0.875rem;
+  --gradient-brand: linear-gradient(120deg, #e4572e 0%, #d97745 45%, #c9922e 100%);
+  --shadow-panel: 0 18px 50px -28px rgba(42, 40, 36, 0.35);
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-line: var(--line);
+  --color-border: var(--border);
+  --color-ember: var(--ember);
+  --color-ember-deep: var(--ember-deep);
+  --color-ember-soft: var(--ember-soft);
+  --color-copper: var(--copper);
+  --color-gold: var(--gold);
+  --color-steel: var(--steel);
+  --color-steel-soft: var(--steel-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-forge-deep: var(--forge-deep);
+  --color-forge-deep-elevated: var(--forge-deep-elevated);
+  --color-section-sand: var(--section-sand);
+  --color-section-peach: var(--section-peach);
+  --color-section-copper: var(--section-copper);
+  --color-section-mist: var(--section-mist);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --font-sans: var(--font-figtree);
+  --font-display: var(--font-syne);
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-figtree), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-syne), system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+  background-color: var(--surface);
+}
+
+.bg-forge {
+  background-color: var(--surface);
+  background-image:
+    radial-gradient(ellipse 70% 55% at 0% -10%, rgba(228, 87, 46, 0.18), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(201, 146, 46, 0.14), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 70% 100%, rgba(47, 63, 82, 0.08), transparent 55%),
+    linear-gradient(180deg, #fbf7f1 0%, #f7f3ee 55%, #f3efe8 100%);
+}
+
+.bg-section-sand {
+  background-color: var(--section-sand);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--section-sand) 88%, white) 0%,
+    var(--section-sand) 100%
+  );
+}
+
+.bg-section-peach {
+  background-color: var(--section-peach);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(228, 87, 46, 0.08), transparent 55%),
+    linear-gradient(180deg, #fff6f0 0%, var(--section-peach) 100%);
+}
+
+.bg-section-copper {
+  background-color: var(--section-copper);
+  background-image:
+    radial-gradient(ellipse 55% 45% at 0% 100%, rgba(217, 119, 69, 0.12), transparent 55%),
+    linear-gradient(180deg, #faf0e6 0%, var(--section-copper) 100%);
+}
+
+.bg-section-mist {
+  background-color: var(--section-mist);
+  background-image:
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(228, 87, 46, 0.1), transparent 50%),
+    linear-gradient(180deg, #fff3ec 0%, var(--section-mist) 100%);
+}
+
+.bg-section-cream {
+  background-color: var(--surface-elevated);
+  background-image: linear-gradient(
+    180deg,
+    #fffcf8 0%,
+    color-mix(in oklab, var(--surface-elevated) 85%, var(--ember-soft)) 100%
+  );
+}
+
+.bg-forge-deep {
+  background-color: var(--forge-deep);
+  background-image:
+    radial-gradient(ellipse 70% 55% at 10% 0%, rgba(228, 87, 46, 0.35), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 100%, rgba(201, 146, 46, 0.2), transparent 50%),
+    linear-gradient(180deg, #4a2418 0%, var(--forge-deep) 55%, #2f150f 100%);
+  color: #fff8f4;
+}
+
+.bg-mesh {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(228, 87, 46, 0.12), transparent 28%),
+    radial-gradient(circle at 80% 10%, rgba(201, 146, 46, 0.1), transparent 26%),
+    radial-gradient(circle at 60% 80%, rgba(47, 63, 82, 0.08), transparent 30%);
+  animation: mesh-drift 18s ease-in-out infinite alternate;
+}
+
+.noise {
+  position: relative;
+}
+.noise::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.panel {
+  background: color-mix(in oklab, var(--surface-elevated) 92%, white);
+  border: 1px solid color-mix(in oklab, var(--line) 85%, var(--ember) 15%);
+  box-shadow: var(--shadow-panel);
+}
+
+.text-gradient {
+  background-image: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-brand {
+  background-image: var(--gradient-brand);
+}
+
+.icon-ember-tint {
+  filter: brightness(0) saturate(100%) invert(39%) sepia(92%) saturate(1650%)
+    hue-rotate(349deg) brightness(97%) contrast(92%);
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes mesh-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, -1.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes forge-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-up {
+  transform: translateY(28px);
+}
+
+.reveal-left {
+  transform: translateX(-28px);
+}
+
+.reveal-right {
+  transform: translateX(28px);
+}
+
+.reveal-scale {
+  transform: scale(0.94) translateY(16px);
+}
+
+.reveal-fade {
+  transform: none;
+  filter: blur(4px);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.reveal-delay-1 {
+  transition-delay: 0.08s;
+}
+.reveal-delay-2 {
+  transition-delay: 0.16s;
+}
+.reveal-delay-3 {
+  transition-delay: 0.24s;
+}
+.reveal-delay-4 {
+  transition-delay: 0.32s;
+}
+.reveal-delay-5 {
+  transition-delay: 0.4s;
+}
+
+.animate-float {
+  animation: float-soft 6s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.8s ease-in-out infinite;
+}
+
+.animate-forge-glow {
+  animation: forge-glow 7s ease-in-out infinite;
+}
+
+.section-scroll-hint {
+  animation: float-soft 3.2s ease-in-out infinite;
+}
+
+.forge-rail {
+  background-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--ember) 55%, transparent) 12%,
+    color-mix(in oklab, var(--ember) 55%, transparent) 88%,
+    transparent 100%
+  );
+}
+
+.chart-bar {
+  transform-origin: bottom;
+  transform: scaleY(0);
+}
+
+.is-visible .chart-bar,
+.chart-bars-ready .chart-bar {
+  animation: bar-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+}
+
+.accordion-panel > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.accordion-item[data-open="true"] .accordion-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.accordion-answer {
+  transform: translateY(-6px);
+  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.accordion-item[data-open="true"] .accordion-answer {
+  transform: translateY(0);
+}
+
+.interactive-lift {
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.interactive-lift:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .interactive-lift:hover {
+    transform: translateY(-3px);
+  }
+}
+
+.shimmer-border {
+  background: linear-gradient(
+    110deg,
+    color-mix(in oklab, var(--line) 80%, white) 20%,
+    color-mix(in oklab, var(--ember) 35%, white) 45%,
+    color-mix(in oklab, var(--gold) 35%, white) 55%,
+    color-mix(in oklab, var(--line) 80%, white) 80%
+  );
+  background-size: 220% 220%;
+  animation: shimmer 4.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-up,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale,
+  .reveal-fade {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+  .animate-float,
+  .animate-marquee,
+  .animate-pulse-soft,
+  .animate-forge-glow,
+  .section-scroll-hint,
+  .bg-mesh,
+  .shimmer-border,
+  .chart-bar,
+  .is-visible .chart-bar,
+  .chart-bars-ready .chart-bar {
+    animation: none;
+  }
+  .chart-bar {
+    transform: none;
+  }
+  .accordion-panel,
+  .accordion-answer {
+    transition: none;
+  }
 }

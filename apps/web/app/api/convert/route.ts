@@ -3,10 +3,20 @@ import { convertFile, ConversionError } from "@/lib/converters";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { conversions } from "@/lib/db/schema";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: `That file is too large. FileForge accepts files up to ${MAX_UPLOAD_LABEL}.` },
+      { status: 413 }
+    );
+  }
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const conversionType = formData.get("conversionType") as string | null;
@@ -17,6 +27,13 @@ export async function POST(req: NextRequest) {
 
   if (!conversionType) {
     return NextResponse.json({ error: "No conversion type selected." }, { status: 400 });
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: `That file is too large. FileForge accepts files up to ${MAX_UPLOAD_LABEL}.` },
+      { status: 413 }
+    );
   }
 
   const inputBuffer = Buffer.from(await file.arrayBuffer());

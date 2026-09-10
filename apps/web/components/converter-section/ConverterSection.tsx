@@ -5,11 +5,13 @@ import ConversionSelect from "./ConversionSelect";
 import FileDropzone from "./FileDropzone";
 import ConvertButton from "./ConvertButton";
 import { CONVERSION_EXTENSIONS, DEFAULT_CONVERSION_TYPE } from "./conversions";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 
 export default function ConverterSection() {
   const [file, setFile] = useState<File | null>(null);
   const [conversionType, setConversionType] = useState(DEFAULT_CONVERSION_TYPE);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const extensions = CONVERSION_EXTENSIONS[conversionType] ?? [];
   const accept = extensions.map((ext) => `.${ext}`).join(",");
@@ -18,11 +20,17 @@ export default function ConverterSection() {
   function handleConversionTypeChange(value: string) {
     setConversionType(value);
     setFile(null);
+    setError(null);
   }
 
   async function handleConvert() {
     if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`That file is too large. FileForge accepts files up to ${MAX_UPLOAD_LABEL}.`);
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -34,10 +42,10 @@ export default function ConverterSection() {
       });
 
       if (!response.ok) {
-        const { error } = await response
+        const data = await response
           .json()
           .catch(() => ({ error: "Conversion failed." }));
-        alert(error ?? "Conversion failed.");
+        setError(data.error ?? "Conversion failed.");
         return;
       }
 
@@ -54,28 +62,14 @@ export default function ConverterSection() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
+      setError("Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="w-full max-w-xl rounded-2xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-xl text-white">
-          📄
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            FileForge
-          </h1>
-          <p className="text-sm text-slate-500">
-            Convert your documents in seconds.
-          </p>
-        </div>
-      </div>
-
+    <div className="w-full border border-line bg-surface-elevated p-6 shadow-sm sm:p-8">
       <div className="space-y-6">
         <ConversionSelect
           value={conversionType}
@@ -83,11 +77,20 @@ export default function ConverterSection() {
         />
         <FileDropzone
           file={file}
-          onFileSelect={setFile}
+          onFileSelect={(next) => {
+            setFile(next);
+            setError(null);
+          }}
           accept={accept}
           acceptLabel={acceptLabel}
         />
       </div>
+
+      {error && (
+        <p className="mt-4 border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       <ConvertButton
         disabled={!file || loading}

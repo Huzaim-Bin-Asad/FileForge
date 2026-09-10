@@ -6,6 +6,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Alert from "@/components/ui/Alert";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function SignupForm() {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      router.push("/");
+      router.push("/convert");
       router.refresh();
     } catch {
       setError("Something went wrong.");
@@ -39,34 +40,46 @@ export default function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <Alert>{error}</Alert>}
-      <Input
-        label="Email"
-        type="email"
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <Input
-        label="Password"
-        type="password"
-        autoComplete="new-password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        minLength={8}
-        required
-      />
-      <Button type="submit" loading={loading} className="w-full">
-        Sign up
-      </Button>
-      <p className="text-center text-sm text-slate-500">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-          Log in
-        </Link>
-      </p>
-    </form>
+    <div className="space-y-5">
+      <GoogleButton next="/convert" label="Sign up with Google" />
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-line" />
+        <span className="text-xs font-medium uppercase tracking-wider text-ink-muted">
+          or email
+        </span>
+        <div className="h-px flex-1 bg-line" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && <Alert>{error}</Alert>}
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          minLength={8}
+          required
+        />
+        <Button type="submit" loading={loading} className="w-full">
+          Create account
+        </Button>
+        <p className="text-center text-sm text-ink-muted">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-ember hover:text-ember-deep">
+            Log in
+          </Link>
+        </p>
+      </form>
+    </div>
   );
 }

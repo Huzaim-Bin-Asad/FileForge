@@ -26,6 +26,13 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "This account uses Google sign-in and has no password to change." },
+      { status: 400 }
+    );
+  }
+
   const valid = await verifyPassword(currentPassword, user.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });

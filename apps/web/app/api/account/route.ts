@@ -25,9 +25,19 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  const valid = await verifyPassword(parsed.data.password, user.passwordHash);
-  if (!valid) {
-    return NextResponse.json({ error: "Password is incorrect." }, { status: 400 });
+  if (user.passwordHash) {
+    if (!parsed.data.password) {
+      return NextResponse.json({ error: "Password is required." }, { status: 400 });
+    }
+    const valid = await verifyPassword(parsed.data.password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: "Password is incorrect." }, { status: 400 });
+    }
+  } else if (parsed.data.confirmation !== "DELETE") {
+    return NextResponse.json(
+      { error: 'Type DELETE to confirm account deletion.' },
+      { status: 400 }
+    );
   }
 
   // refreshTokens/passwordResetTokens/conversions all cascade on user delete.

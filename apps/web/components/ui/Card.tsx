@@ -1,4 +1,5 @@
 import { HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
 
 export default function Card({
   className = "",
@@ -7,7 +8,10 @@ export default function Card({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`w-full rounded-2xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50 ${className}`}
+      className={cn(
+        "w-full border border-line bg-surface-elevated p-8 shadow-sm",
+        className
+      )}
       {...props}
     >
       {children}

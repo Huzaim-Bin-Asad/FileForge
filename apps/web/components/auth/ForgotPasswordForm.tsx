@@ -49,8 +49,8 @@ export default function ForgotPasswordForm() {
       <Button type="submit" loading={loading} className="w-full">
         Send reset link
       </Button>
-      <p className="text-center text-sm text-slate-500">
-        <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+      <p className="text-center text-sm text-ink-muted">
+        <Link href="/login" className="font-medium text-ember hover:text-ember-deep">
           Back to log in
         </Link>
       </p>

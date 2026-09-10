@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Figtree, Syne, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { getSessionUser } from "@/lib/auth/session";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin"],
+});
+
+const syne = Syne({
+  variable: "--font-syne",
   subsets: ["latin"],
 });
 
@@ -16,9 +21,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FileForge",
+  title: "FileForge | Universal file converter",
   description:
-    "Convert PDF, Word, Excel, PowerPoint and more — fast, private, no third-party uploads.",
+    "Convert PDF, Word, Excel, PowerPoint, Markdown, HTML and more, fast, private, no third-party uploads.",
 };
 
 export default async function RootLayout({
@@ -31,11 +36,11 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${figtree.variable} ${syne.variable} ${geistMono.variable} h-full bg-surface antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col bg-surface text-ink">
         <Navbar user={user} />
-        <main className="flex-1 flex flex-col">{children}</main>
+        <main className="flex flex-1 flex-col">{children}</main>
         <Footer />
       </body>
     </html>
