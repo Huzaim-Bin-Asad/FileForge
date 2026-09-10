@@ -69,7 +69,7 @@ export default function ConverterSection() {
   }
 
   return (
-    <div className="w-full border border-line bg-surface-elevated p-6 shadow-sm sm:p-8">
+    <div className="w-full rounded-2xl border border-line bg-surface-elevated p-6 shadow-sm sm:p-8">
       <div className="space-y-6">
         <ConversionSelect
           value={conversionType}

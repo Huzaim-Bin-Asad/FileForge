@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowLeftRight,
   FolderOpen,
   History,
   KeyRound,
@@ -12,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const nav = [
+  { href: "/convert", label: "Converter", Icon: ArrowLeftRight },
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/history", label: "History", Icon: History },
   { href: "/collections", label: "Collections", Icon: FolderOpen },
