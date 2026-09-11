@@ -87,7 +87,7 @@ export default function ConverterSection() {
       </div>
 
       {error && (
-        <p className="mt-4 border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
+        <p className="mt-4 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}

@@ -13,7 +13,7 @@ export default function ConvertButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="mt-8 flex w-full items-center justify-center gap-2 rounded-md bg-ember px-6 py-3.5 font-semibold text-white transition hover:bg-ember-deep disabled:cursor-not-allowed disabled:opacity-50"
+      className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-ember px-6 py-3.5 font-semibold text-white transition hover:bg-ember-deep disabled:cursor-not-allowed disabled:opacity-50"
     >
       {loading && (
         <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">

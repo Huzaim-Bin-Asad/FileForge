@@ -28,7 +28,7 @@ export default function FileDropzone({
     return (
       <div>
         <label className="mb-2 block text-sm font-medium text-ink">File</label>
-        <div className="flex items-center gap-4 border border-success/25 bg-success-soft px-5 py-4">
+        <div className="flex items-center gap-4 rounded-xl border border-success/25 bg-success-soft px-5 py-4">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-success" strokeWidth={2} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-ink">{file.name}</p>
@@ -74,7 +74,7 @@ export default function FileDropzone({
           setIsDragging(false);
           handleFiles(e.dataTransfer.files);
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center border-2 border-dashed px-6 py-12 text-center transition ${
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition ${
           isDragging
             ? "border-ember bg-ember-soft"
             : "border-line bg-surface hover:border-ember/50 hover:bg-ember-soft/40"
