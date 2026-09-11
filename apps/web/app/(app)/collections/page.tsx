@@ -29,7 +29,7 @@ export default async function CollectionsPage() {
     .groupBy(collections.id)
     .orderBy(desc(collections.createdAt));
 
-  const initial = rows.map((r) => ({
+  const list = rows.map((r) => ({
     id: r.id,
     name: r.name,
     itemCount: Number(r.itemCount),
@@ -41,7 +41,7 @@ export default async function CollectionsPage() {
       title="Collections"
       subtitle="Group related conversions so they're easy to find later."
     >
-      <CollectionsManager initial={initial} />
+      <CollectionsManager collections={list} />
     </WorkspaceShell>
   );
 }

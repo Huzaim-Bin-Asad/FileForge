@@ -13,9 +13,12 @@ interface Collection {
   createdAt: string;
 }
 
-export default function CollectionsManager({ initial }: { initial: Collection[] }) {
+export default function CollectionsManager({
+  collections,
+}: {
+  collections: Collection[];
+}) {
   const router = useRouter();
-  const [collections] = useState(initial);
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<Collection | null>(null);
   const [deleting, setDeleting] = useState<Collection | null>(null);
