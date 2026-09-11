@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
-import { FileText } from "lucide-react";
 import { db } from "@/lib/db/client";
-import { conversions } from "@/lib/db/schema";
+import { collections, conversions } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
-import { relativeTime } from "@/lib/dashboard/stats";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
+import HistoryList from "@/components/workspace/HistoryList";
 
 export const metadata = {
   title: "History | FileForge",
@@ -18,12 +17,28 @@ export default async function HistoryPage() {
     redirect("/login?next=/history");
   }
 
-  const items = await db
-    .select()
-    .from(conversions)
-    .where(eq(conversions.userId, user.id))
-    .orderBy(desc(conversions.createdAt))
-    .limit(50);
+  const [items, userCollections] = await Promise.all([
+    db
+      .select({
+        id: conversions.id,
+        originalFilename: conversions.originalFilename,
+        sourceFormat: conversions.sourceFormat,
+        targetFormat: conversions.targetFormat,
+        createdAt: conversions.createdAt,
+        collectionId: conversions.collectionId,
+        collectionName: collections.name,
+      })
+      .from(conversions)
+      .leftJoin(collections, eq(collections.id, conversions.collectionId))
+      .where(eq(conversions.userId, user.id))
+      .orderBy(desc(conversions.createdAt))
+      .limit(50),
+    db
+      .select({ id: collections.id, name: collections.name })
+      .from(collections)
+      .where(eq(collections.userId, user.id))
+      .orderBy(desc(collections.createdAt)),
+  ]);
 
   return (
     <WorkspaceShell
@@ -52,30 +67,18 @@ export default async function HistoryPage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-surface-elevated">
-          <div className="flex items-center justify-between border-b border-line px-5 py-3">
-            <p className="text-sm font-semibold text-ink">All conversions</p>
-            <span className="text-xs text-ink-muted">
-              {items.length === 50 ? "Last 50" : `${items.length} total`}
-            </span>
-          </div>
-          <ul className="divide-y divide-line">
-            {items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 px-5 py-3.5">
-                <FileText className="h-4 w-4 shrink-0 text-ember" strokeWidth={1.7} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-ink">{item.originalFilename}</p>
-                  <p className="text-xs text-ink-muted">
-                    {relativeTime(new Date(item.createdAt))}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-md bg-ember-soft px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wide text-ember-deep">
-                  {item.sourceFormat} → {item.targetFormat}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <HistoryList
+          items={items.map((i) => ({
+            id: i.id,
+            originalFilename: i.originalFilename,
+            sourceFormat: i.sourceFormat,
+            targetFormat: i.targetFormat,
+            createdAt: i.createdAt.toISOString(),
+            collectionId: i.collectionId,
+            collectionName: i.collectionName,
+          }))}
+          collections={userCollections}
+        />
       )}
     </WorkspaceShell>
   );

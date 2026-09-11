@@ -45,6 +45,19 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
 
+export const collections = pgTable(
+  "collections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("collections_user_id_idx").on(table.userId)]
+);
+
 export const conversions = pgTable(
   "conversions",
   {
@@ -52,6 +65,9 @@ export const conversions = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    collectionId: uuid("collection_id").references(() => collections.id, {
+      onDelete: "set null",
+    }),
     sourceFormat: text("source_format").notNull(),
     targetFormat: text("target_format").notNull(),
     originalFilename: text("original_filename").notNull(),
@@ -59,5 +75,23 @@ export const conversions = pgTable(
   },
   (table) => [
     index("conversions_user_id_created_at_idx").on(table.userId, table.createdAt),
+    index("conversions_collection_id_idx").on(table.collectionId),
   ]
+);
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    keyPrefix: text("key_prefix").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [index("api_keys_user_id_idx").on(table.userId)]
 );
