@@ -2,11 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
-import { changePasswordSchema } from "@/lib/auth/validation";
+import { changePasswordSchema, setPasswordSchema } from "@/lib/auth/validation";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { clearSessionCookies, getSessionUser, revokeAllSessions } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
+
+/** Sets a first password for an account that signs in with Google only. */
+export async function POST(req: NextRequest) {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const parsed = setPasswordSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  if (user.passwordHash) {
+    return NextResponse.json(
+      { error: "This account already has a password. Use change password instead." },
+      { status: 400 }
+    );
+  }
+
+  const passwordHash = await hashPassword(parsed.data.newPassword);
+  await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, user.id));
+
+  return NextResponse.json({ ok: true });
+}
 
 export async function PATCH(req: NextRequest) {
   const sessionUser = await getSessionUser();

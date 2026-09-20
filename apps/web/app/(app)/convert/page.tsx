@@ -2,7 +2,8 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { collections } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
-import ConverterSection from "@/components/converter-section/ConverterSection";
+import { CONVERSION_PAIRS } from "@/lib/converters/catalog";
+import ConvertPanel from "@/components/convert/ConvertPanel";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 
 export const metadata = {
@@ -10,7 +11,13 @@ export const metadata = {
   description: "Convert PDF, Word, Excel, PowerPoint, Markdown, HTML and more.",
 };
 
-export default async function ConvertPage() {
+export default async function ConvertPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const { type } = await searchParams;
+  const pair = type ? CONVERSION_PAIRS.find((p) => p.type === type) : undefined;
   const user = await getSessionUser();
 
   const userCollections = user
@@ -24,10 +31,14 @@ export default async function ConvertPage() {
   return (
     <WorkspaceShell
       title="Converter"
-      subtitle="Files are processed inside FileForge and never uploaded to another service. Sign in to keep a history of what you converted."
+      subtitle={
+        user
+          ? "Converted files are saved to your history so you can re-download them later."
+          : "Sign in to keep a history of what you converted and re-download it later."
+      }
     >
       <div className="max-w-2xl">
-        <ConverterSection collections={userCollections} />
+        <ConvertPanel collections={userCollections} initialPair={pair} />
       </div>
     </WorkspaceShell>
   );

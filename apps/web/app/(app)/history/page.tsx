@@ -27,6 +27,7 @@ export default async function HistoryPage() {
         createdAt: conversions.createdAt,
         collectionId: conversions.collectionId,
         collectionName: collections.name,
+        mimeType: conversions.mimeType,
       })
       .from(conversions)
       .leftJoin(collections, eq(collections.id, conversions.collectionId))
@@ -43,13 +44,13 @@ export default async function HistoryPage() {
   return (
     <WorkspaceShell
       title="History"
-      subtitle="Files aren't stored, only what was converted and when."
+      subtitle="Converted files are saved so you can re-download them."
       action={
         <Link
-          href="/convert"
+          href="/dashboard"
           className="rounded-xl bg-ember px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ember-deep"
         >
-          New conversion
+          Back to dashboard
         </Link>
       }
     >
@@ -60,10 +61,10 @@ export default async function HistoryPage() {
             Convert a file and it will show up here.
           </p>
           <Link
-            href="/convert"
+            href="/dashboard"
             className="mt-6 inline-flex rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-steel-soft"
           >
-            Open the converter
+            Back to dashboard
           </Link>
         </div>
       ) : (
@@ -76,6 +77,7 @@ export default async function HistoryPage() {
             createdAt: i.createdAt.toISOString(),
             collectionId: i.collectionId,
             collectionName: i.collectionName,
+            hasFile: i.mimeType !== null,
           }))}
           collections={userCollections}
         />

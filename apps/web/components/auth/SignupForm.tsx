@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Alert from "@/components/ui/Alert";
 import GoogleButton from "@/components/auth/GoogleButton";
 
@@ -30,7 +31,7 @@ export default function SignupForm() {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      router.push("/convert");
+      router.push("/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong.");
@@ -41,7 +42,7 @@ export default function SignupForm() {
 
   return (
     <div className="space-y-5">
-      <GoogleButton next="/convert" label="Sign up with Google" />
+      <GoogleButton next="/dashboard" label="Sign up with Google" />
 
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-line" />
@@ -61,9 +62,8 @@ export default function SignupForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <Input
+        <PasswordInput
           label="Password"
-          type="password"
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

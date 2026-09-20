@@ -1,7 +1,6 @@
 import { randomBytes, createHmac } from "crypto";
 
-export const REFRESH_TOKEN_COOKIE = "ff_refresh";
-export const REFRESH_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+export { REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_MAX_AGE_SECONDS } from "./tokenConstants";
 
 export function generateOpaqueToken(): string {
   return randomBytes(32).toString("hex");

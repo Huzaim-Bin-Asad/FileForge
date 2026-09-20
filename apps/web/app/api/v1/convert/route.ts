@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateApiKey, extractApiKey } from "@/lib/apiKeys";
 import { runConversion, ConversionError } from "@/lib/conversions";
 import { getJobIdForError } from "@/lib/jobs";
-import { getSessionUser } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const key = extractApiKey(req.headers);
+  if (!key) {
+    return NextResponse.json(
+      { error: "Missing API key. Pass it as 'Authorization: Bearer <key>' or 'x-api-key'." },
+      { status: 401 }
+    );
+  }
+
+  const auth = await authenticateApiKey(key);
+  if (!auth) {
+    return NextResponse.json({ error: "Invalid or revoked API key." }, { status: 401 });
+  }
+
+  const rate = await checkRateLimit(req, "api-convert", { limit: 30, windowSeconds: 60 });
+  if (!rate.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again shortly." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } }
+    );
+  }
+
   const contentLength = Number(req.headers.get("content-length") ?? 0);
   if (contentLength > MAX_UPLOAD_BYTES) {
     return NextResponse.json(
@@ -16,10 +38,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const conversionType = formData.get("conversionType") as string | null;
-  const collectionId = (formData.get("collectionId") as string | null) || null;
+  const formData = await req.formData().catch(() => null);
+  const file = formData?.get("file") as File | null;
+  const conversionType = formData?.get("conversionType") as string | null;
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
@@ -37,10 +58,8 @@ export async function POST(req: NextRequest) {
   const inputBuffer = Buffer.from(await file.arrayBuffer());
 
   try {
-    const user = await getSessionUser();
     const { buffer, filename, mimeType, conversionId, jobId } = await runConversion({
-      userId: user?.id ?? null,
-      collectionId,
+      userId: auth.userId,
       conversionType,
       buffer: inputBuffer,
       filename: file.name,

@@ -73,7 +73,7 @@ export default function Navbar({ user }: NavbarProps) {
                       Dashboard
                     </Link>
                     <Link
-                      href="/convert"
+                      href="/dashboard"
                       onClick={() => setMenuOpen(false)}
                       className="block px-4 py-2.5 text-sm text-ink hover:bg-surface"
                     >
@@ -112,7 +112,7 @@ export default function Navbar({ user }: NavbarProps) {
                 Log in
               </Link>
               <Link
-                href="/convert"
+                href="/dashboard"
                 className="bg-brand rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-md shadow-ember/20 transition hover:opacity-95"
               >
                 Convert
@@ -153,7 +153,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <Link href="/dashboard" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-ink">
                   Dashboard
                 </Link>
-                <Link href="/convert" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-ink">
+                <Link href="/dashboard" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-ink">
                   Convert
                 </Link>
                 <Link href="/history" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-ink">
@@ -174,7 +174,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <Link href="/signup" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-ember">
                   Sign up
                 </Link>
-                <Link href="/convert" onClick={() => setOpen(false)} className="mt-1 rounded-md bg-ember px-3 py-2.5 text-center text-sm font-semibold text-white">
+                <Link href="/dashboard" onClick={() => setOpen(false)} className="mt-1 rounded-md bg-ember px-3 py-2.5 text-center text-sm font-semibold text-white">
                   Convert
                 </Link>
               </>

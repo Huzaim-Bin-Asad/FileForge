@@ -27,6 +27,10 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+export const setPasswordSchema = z.object({
+  newPassword: passwordSchema,
+});
+
 export const deleteAccountSchema = z.object({
   password: z.string().optional(),
   confirmation: z.string().optional(),

@@ -5,6 +5,7 @@ import { users } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 import Card from "@/components/ui/Card";
 import ChangePasswordForm from "@/components/auth/ChangePasswordForm";
+import SetPasswordForm from "@/components/auth/SetPasswordForm";
 import DeleteAccountForm from "@/components/auth/DeleteAccountForm";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 
@@ -60,12 +61,13 @@ export default async function ProfilePage() {
         ) : (
           <Card className="rounded-2xl p-6">
             <h2 className="font-display mb-1 text-base font-bold text-ink">
-              Password
+              Create a password
             </h2>
-            <p className="text-sm text-ink-muted">
-              This account signs in with Google and doesn&apos;t have a
-              password. Use Continue with Google on the login page.
+            <p className="mb-5 text-sm text-ink-muted">
+              This account signs in with Google. Add a password to also sign in
+              with your email address &mdash; Continue with Google keeps working.
             </p>
+            <SetPasswordForm />
           </Card>
         )}
 

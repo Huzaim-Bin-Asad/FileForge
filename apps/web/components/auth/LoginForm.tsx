@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Alert from "@/components/ui/Alert";
 import GoogleButton from "@/components/auth/GoogleButton";
 
@@ -19,7 +20,7 @@ export default function LoginForm({ next, error: initialError }: LoginFormProps)
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
-  const redirectTo = next && next.startsWith("/") ? next : "/convert";
+  const redirectTo = next && next.startsWith("/") ? next : "/dashboard";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -67,9 +68,8 @@ export default function LoginForm({ next, error: initialError }: LoginFormProps)
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <Input
+        <PasswordInput
           label="Password"
-          type="password"
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

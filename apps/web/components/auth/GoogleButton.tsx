@@ -4,7 +4,7 @@ interface GoogleButtonProps {
 }
 
 export default function GoogleButton({
-  next = "/convert",
+  next = "/dashboard",
   label = "Continue with Google",
 }: GoogleButtonProps) {
   const href = `/api/auth/google?next=${encodeURIComponent(next)}`;

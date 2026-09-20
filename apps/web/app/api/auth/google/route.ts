@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   }
 
   const next = req.nextUrl.searchParams.get("next");
-  const safeNext = next && next.startsWith("/") ? next : "/convert";
+  const safeNext = next && next.startsWith("/") ? next : "/dashboard";
 
   const response = NextResponse.redirect(authUrl);
   const cookieOptions = {
