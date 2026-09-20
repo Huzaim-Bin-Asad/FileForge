@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { collections, conversions } from "@/lib/db/schema";
 import { convertFile, ConversionError } from "@/lib/converters";
 import { completeJob, createJob, failJob, rememberJobForError, startJob } from "@/lib/jobs";
+import { recordUsageEvent } from "@/lib/usage";
 
 export { ConversionError } from "@/lib/converters";
 
@@ -112,8 +113,36 @@ export async function runConversion({
   }
 
   if (jobId) {
-    await bestEffort("complete", () =>
-      completeJob(jobId, { conversionId, processingTimeMs: Date.now() - startedAt })
+    const processingTimeMs = Date.now() - startedAt;
+    await bestEffort("complete", () => completeJob(jobId, { conversionId, processingTimeMs }));
+
+    // Usage is keyed by (job_id, type), so recording it more than once for
+    // this job (e.g. this whole function re-running for the same job,
+    // which can't happen today, or a future retry path) is a no-op rather
+    // than a double count — see lib/usage.ts. A conversion only reaches
+    // here on success, so failed jobs never get a file_processed event.
+    await bestEffort("usage:file_processed", () =>
+      recordUsageEvent({ userId: userId!, jobId, type: "file_processed", amount: 1 })
+    );
+    await bestEffort("usage:processing_time", () =>
+      recordUsageEvent({
+        userId: userId!,
+        jobId,
+        type: "processing_time",
+        amount: processingTimeMs,
+      })
+    );
+    // Total bytes moved for this conversion: the uploaded input plus the
+    // converted output. Both are already in memory for this request, so no
+    // new storage or measurement was introduced to record this.
+    await bestEffort("usage:bandwidth", () =>
+      recordUsageEvent({
+        userId: userId!,
+        jobId,
+        type: "bandwidth",
+        amount: buffer.length + result.buffer.length,
+        metadata: { input_bytes: buffer.length, output_bytes: result.buffer.length },
+      })
     );
   }
 

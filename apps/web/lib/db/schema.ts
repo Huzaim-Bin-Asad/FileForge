@@ -5,7 +5,9 @@ import {
   text,
   timestamp,
   integer,
+  jsonb,
   index,
+  uniqueIndex,
   check,
   customType,
 } from "drizzle-orm/pg-core";
@@ -140,6 +142,63 @@ export const jobs = pgTable(
       sql`${table.status} in ('queued', 'processing', 'completed', 'failed', 'cancelled')`
     ),
     check("jobs_progress_check", sql`${table.progress} between 0 and 100`),
+  ]
+);
+
+export const USAGE_EVENT_TYPES = [
+  "file_processed",
+  "api_request",
+  "bandwidth",
+  "storage",
+  "processing_time",
+] as const;
+export type UsageEventType = (typeof USAGE_EVENT_TYPES)[number];
+
+/**
+ * A durable, append-only record of measurable product usage, kept
+ * independent of any subscription/billing concept (there isn't one yet —
+ * see lib/usage.ts). Each row is one measured quantity of one type.
+ *
+ * Idempotency: `(job_id, type)` is unique, so "this job's file_processed
+ * event" (or processing_time, or api_request) can be inserted at most once
+ * no matter how many times the recording code path runs — retries use
+ * `onConflictDoNothing` against this index rather than an app-level check.
+ * Rows with a null job_id (usage not tied to a single job) are exempt from
+ * that constraint, since Postgres treats each NULL as distinct; those rely
+ * on the caller invoking the recorder at most once per real event.
+ */
+export const usageEvents = pgTable(
+  "usage_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** The job this usage was measured from, when there is one. */
+    jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+    type: text("type").$type<UsageEventType>().notNull(),
+    /** Always a non-negative whole number — a count, milliseconds, or bytes; see `unit`. */
+    amount: integer("amount").notNull(),
+    /** e.g. "file", "request", "ms", "byte". Free text so future types aren't constrained here. */
+    unit: text("unit").notNull(),
+    /** Optional extra context (e.g. conversion type). Never loaded by the aggregate helpers. */
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("usage_events_user_id_created_at_idx").on(table.userId, table.createdAt),
+    index("usage_events_user_id_type_created_at_idx").on(
+      table.userId,
+      table.type,
+      table.createdAt
+    ),
+    index("usage_events_job_id_idx").on(table.jobId),
+    uniqueIndex("usage_events_job_id_type_unique").on(table.jobId, table.type),
+    check(
+      "usage_events_type_check",
+      sql`${table.type} in ('file_processed', 'api_request', 'bandwidth', 'storage', 'processing_time')`
+    ),
+    check("usage_events_amount_check", sql`${table.amount} >= 0`),
   ]
 );
 
