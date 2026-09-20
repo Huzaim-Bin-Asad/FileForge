@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const oauthError = req.nextUrl.searchParams.get("error");
 
   const storedState = req.cookies.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
-  const nextPath = req.cookies.get(GOOGLE_OAUTH_NEXT_COOKIE)?.value ?? "/convert";
+  const nextPath = req.cookies.get(GOOGLE_OAUTH_NEXT_COOKIE)?.value ?? "/dashboard";
 
   const clearCookies = (response: NextResponse) => {
     response.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
@@ -103,10 +103,11 @@ export async function GET(req: NextRequest) {
 
     await createSession({ id: user.id, email: user.email });
 
-    const destination = nextPath.startsWith("/") ? nextPath : "/convert";
+    const destination = nextPath.startsWith("/") ? nextPath : "/dashboard";
     const response = NextResponse.redirect(new URL(destination, config.appUrl));
     return clearCookies(response);
-  } catch {
+  } catch (err) {
+    console.error("Google sign-in callback failed:", err);
     return clearCookies(
       redirectWithError(config.appUrl, "Google sign-in failed. Try again.")
     );

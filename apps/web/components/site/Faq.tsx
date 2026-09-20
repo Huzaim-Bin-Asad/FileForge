@@ -54,7 +54,7 @@ export default function Faq() {
             subtitle="Still curious? Open the converter and try a file. That usually settles it faster than another paragraph."
           />
           <Link
-            href="/convert"
+            href="/dashboard"
             className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-ember px-5 py-3 text-sm font-semibold text-white transition hover:bg-ember-deep sm:mt-8 sm:w-auto"
           >
             Try a conversion

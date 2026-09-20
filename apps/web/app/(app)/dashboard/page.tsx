@@ -33,7 +33,13 @@ export default async function DashboardPage() {
       .from(conversions)
       .where(eq(conversions.userId, user.id)),
     db
-      .select()
+      .select({
+        id: conversions.id,
+        originalFilename: conversions.originalFilename,
+        sourceFormat: conversions.sourceFormat,
+        targetFormat: conversions.targetFormat,
+        createdAt: conversions.createdAt,
+      })
       .from(conversions)
       .where(eq(conversions.userId, user.id))
       .orderBy(desc(conversions.createdAt))

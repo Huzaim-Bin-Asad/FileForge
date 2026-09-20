@@ -28,7 +28,7 @@ export default function Tools() {
         />
         <div className="mt-8 flex justify-center">
           <Link
-            href="/convert"
+            href="/dashboard"
             className="inline-flex items-center gap-2 text-sm font-semibold text-ember transition hover:text-ember-deep"
           >
             Open the converter
