@@ -17,7 +17,7 @@ const plans = [
       "No account required",
     ],
     cta: "Start converting",
-    href: "/convert",
+    href: "/dashboard",
     featured: false,
   },
   {

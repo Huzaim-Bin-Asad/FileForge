@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, FileText, FolderInput } from "lucide-react";
+import { Check, Download, FileText, FolderInput } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { relativeTime } from "@/lib/dashboard/stats";
 
@@ -14,6 +14,7 @@ interface Item {
   createdAt: string;
   collectionId: string | null;
   collectionName: string | null;
+  hasFile: boolean;
 }
 
 interface CollectionRef {
@@ -68,6 +69,16 @@ export default function HistoryList({
                 )}
               </p>
             </div>
+
+            {item.hasFile && (
+              <a
+                href={`/api/conversions/${item.id}/download`}
+                aria-label="Download"
+                className="rounded-lg p-1.5 text-ink-muted transition hover:bg-surface hover:text-ink"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+            )}
 
             {collections.length > 0 && (
               <button

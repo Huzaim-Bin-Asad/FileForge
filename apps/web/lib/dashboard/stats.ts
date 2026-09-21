@@ -40,6 +40,29 @@ export function bucketWeeklyVolume(
   return buckets;
 }
 
+/** "0 B", "4.2 KB", "1.3 MB" — for the dashboard's monthly bandwidth figure. */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`;
+}
+
+/** "480ms", "3.2s", "1m 05s" — for the dashboard's monthly processing-time figure. */
+export function formatDurationMs(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const totalSeconds = ms / 1000;
+  if (totalSeconds < 60) return `${totalSeconds.toFixed(1)}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
 export function relativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime();
   const sec = Math.floor(diffMs / 1000);

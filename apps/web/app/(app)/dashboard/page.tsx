@@ -7,10 +7,13 @@ import { conversions } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 import {
   bucketWeeklyVolume,
+  formatBytes,
+  formatDurationMs,
   pairKeyFor,
   relativeTime,
   SUPPORTED_PAIR_COUNT,
 } from "@/lib/dashboard/stats";
+import { getCurrentBillingPeriodUsage } from "@/lib/usage";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 
 export const metadata = {
@@ -27,17 +30,24 @@ export default async function DashboardPage() {
     redirect("/login?next=/dashboard");
   }
 
-  const [[{ value: total }], items] = await Promise.all([
+  const [[{ value: total }], items, { usage }] = await Promise.all([
     db
       .select({ value: count() })
       .from(conversions)
       .where(eq(conversions.userId, user.id)),
     db
-      .select()
+      .select({
+        id: conversions.id,
+        originalFilename: conversions.originalFilename,
+        sourceFormat: conversions.sourceFormat,
+        targetFormat: conversions.targetFormat,
+        createdAt: conversions.createdAt,
+      })
       .from(conversions)
       .where(eq(conversions.userId, user.id))
       .orderBy(desc(conversions.createdAt))
       .limit(SAMPLE_LIMIT),
+    getCurrentBillingPeriodUsage(user.id),
   ]);
 
   const recent = items.slice(0, RECENT_LIMIT);
@@ -53,6 +63,15 @@ export default async function DashboardPage() {
     { label: "Conversions", value: String(total), delta: "all time" },
     { label: "Formats used", value: String(formatsUsed), delta: `of ${SUPPORTED_PAIR_COUNT} pairs` },
     { label: "History items", value: String(Math.min(total, 50)), delta: "in your history" },
+  ];
+
+  // Current-month usage. There's no billing system yet, so "this month" is
+  // the whole abstraction — see lib/usage.ts.
+  const monthlyStats = [
+    { label: "Files processed", value: String(usage.file_processed.amount) },
+    { label: "API requests", value: String(usage.api_request.amount) },
+    { label: "Processing time", value: formatDurationMs(usage.processing_time.amount) },
+    { label: "Bandwidth", value: formatBytes(usage.bandwidth.amount) },
   ];
 
   return (
@@ -93,6 +112,18 @@ export default async function DashboardPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-2xl bg-surface-elevated p-5">
+            <p className="text-sm font-semibold text-ink">This month</p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              {monthlyStats.map((s) => (
+                <div key={s.label} className="min-w-0">
+                  <p className="truncate text-xs text-ink-muted">{s.label}</p>
+                  <p className="mt-1 font-display text-xl font-bold text-ink">{s.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid min-w-0 gap-4 lg:grid-cols-[1.35fr_1fr]">

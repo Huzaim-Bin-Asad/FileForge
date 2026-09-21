@@ -5,7 +5,7 @@ const columns = [
   {
     title: "Product",
     links: [
-      { label: "Convert", href: "/convert" },
+      { label: "Convert", href: "/dashboard" },
       { label: "Tools", href: "/#tools" },
       { label: "API", href: "/#api" },
       { label: "Pricing", href: "/#pricing" },
@@ -23,10 +23,10 @@ const columns = [
   {
     title: "Formats",
     links: [
-      { label: "PDF ↔ Word", href: "/convert" },
-      { label: "PDF ↔ Excel", href: "/convert" },
-      { label: "PDF ↔ PowerPoint", href: "/convert" },
-      { label: "Markdown & HTML", href: "/convert" },
+      { label: "PDF ↔ Word", href: "/dashboard" },
+      { label: "PDF ↔ Excel", href: "/dashboard" },
+      { label: "PDF ↔ PowerPoint", href: "/dashboard" },
+      { label: "Markdown & HTML", href: "/dashboard" },
     ],
   },
 ];

@@ -5,6 +5,7 @@ import { users } from "@/lib/db/schema";
 import { deleteAccountSchema } from "@/lib/auth/validation";
 import { verifyPassword } from "@/lib/auth/password";
 import { clearSessionCookies, getSessionUser } from "@/lib/auth/session";
+import { listUserBlobPaths, purgeUserBlobs } from "@/lib/conversionStorage";
 
 export const runtime = "nodejs";
 
@@ -40,8 +41,15 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
+  // The cascade below drops the conversion rows, and with them the only
+  // record of their Blob pathnames, so read those first. The rows go first
+  // and the files after: a Blob failure then just leaves unreferenced files
+  // for the orphan sweep, never a row pointing at a missing one.
+  const blobPaths = await listUserBlobPaths(user.id);
+
   // refreshTokens/passwordResetTokens/conversions all cascade on user delete.
   await db.delete(users).where(eq(users.id, user.id));
+  await purgeUserBlobs(user.id, blobPaths);
   await clearSessionCookies();
 
   return NextResponse.json({ ok: true });

@@ -41,7 +41,7 @@ export default function Hero() {
             className="mt-7 flex flex-col justify-center gap-3 sm:mt-9 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4"
           >
             <Link
-              href="/convert"
+              href="/dashboard"
               className="bg-brand inline-flex items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-ember/25 transition hover:opacity-95 sm:px-6 sm:text-base"
             >
               <Upload className="h-4 w-4" />

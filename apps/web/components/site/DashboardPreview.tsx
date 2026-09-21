@@ -121,7 +121,7 @@ export default function DashboardPreview() {
                   </p>
                 </div>
                 <Link
-                  href="/convert"
+                  href="/dashboard"
                   className="rounded-xl bg-ember px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-ember-deep sm:px-4 sm:py-2.5"
                 >
                   New conversion

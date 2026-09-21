@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { collections, conversions } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
@@ -32,7 +32,14 @@ export default async function CollectionDetailPage({ params }: Params) {
   }
 
   const items = await db
-    .select()
+    .select({
+      id: conversions.id,
+      originalFilename: conversions.originalFilename,
+      sourceFormat: conversions.sourceFormat,
+      targetFormat: conversions.targetFormat,
+      createdAt: conversions.createdAt,
+      mimeType: conversions.mimeType,
+    })
     .from(conversions)
     .where(eq(conversions.collectionId, id))
     .orderBy(desc(conversions.createdAt))
@@ -56,14 +63,13 @@ export default async function CollectionDetailPage({ params }: Params) {
         <div className="rounded-2xl border border-dashed border-line bg-surface-elevated px-6 py-16 text-center">
           <p className="font-display text-lg font-bold text-ink">Nothing here yet</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
-            On the converter, pick this collection before you convert, or move an
-            item into it from your history.
+            Move an item into this collection from your history.
           </p>
           <Link
-            href="/convert"
+            href="/history"
             className="mt-6 inline-flex rounded-xl bg-ember px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ember-deep"
           >
-            Open the converter
+            Go to history
           </Link>
         </div>
       ) : (
@@ -81,6 +87,15 @@ export default async function CollectionDetailPage({ params }: Params) {
                 <span className="shrink-0 rounded-md bg-ember-soft px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wide text-ember-deep">
                   {item.sourceFormat} → {item.targetFormat}
                 </span>
+                {item.mimeType && (
+                  <a
+                    href={`/api/conversions/${item.id}/download`}
+                    aria-label="Download"
+                    className="shrink-0 rounded-lg p-1.5 text-ink-muted transition hover:bg-surface hover:text-ink"
+                  >
+                    <Download className="h-4 w-4" />
+                  </a>
+                )}
               </li>
             ))}
           </ul>

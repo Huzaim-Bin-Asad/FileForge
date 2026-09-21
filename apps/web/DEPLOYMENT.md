@@ -41,6 +41,7 @@ Set these in Vercel → Project → Settings → Environment Variables (see
 | `TOKEN_PEPPER` | Yes | `openssl rand -base64 32`, different from the above |
 | `APP_URL` | Yes | Your production URL, e.g. `https://fileforge.vercel.app` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Only if Google sign-in is enabled | See step 4 |
+| `BLOB_READ_WRITE_TOKEN` | Yes (for file storage) | Vercel Blob → create a **private** store and connect it to the project; Vercel injects this. Server-only. Without it, new conversions fall back to Postgres bytea |
 | `RESEND_API_KEY` | Recommended | Without it, password-reset links only appear in function logs |
 | `EMAIL_FROM` | Recommended | Must be on a domain verified in Resend |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Optional | Rate-limits login/signup/forgot-password; silently skipped if unset |
