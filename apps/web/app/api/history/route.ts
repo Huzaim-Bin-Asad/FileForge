@@ -22,8 +22,19 @@ export async function GET(req: NextRequest) {
   );
   const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
 
+  // Explicit columns: a bare select() would pull every row's file_data bytea.
   const items = await db
-    .select()
+    .select({
+      id: conversions.id,
+      userId: conversions.userId,
+      collectionId: conversions.collectionId,
+      sourceFormat: conversions.sourceFormat,
+      targetFormat: conversions.targetFormat,
+      originalFilename: conversions.originalFilename,
+      mimeType: conversions.mimeType,
+      fileSize: conversions.fileSize,
+      createdAt: conversions.createdAt,
+    })
     .from(conversions)
     .where(eq(conversions.userId, user.id))
     .orderBy(desc(conversions.createdAt))

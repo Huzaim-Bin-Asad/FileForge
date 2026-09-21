@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       conversionType,
       buffer: inputBuffer,
       filename: file.name,
+      inputMimeType: file.type,
     });
 
     const headers: Record<string, string> = {

@@ -83,15 +83,42 @@ export const conversions = pgTable(
     sourceFormat: text("source_format").notNull(),
     targetFormat: text("target_format").notNull(),
     originalFilename: text("original_filename").notNull(),
-    /** Null for conversions recorded before file storage was added. */
+    /**
+     * Legacy storage: the converted output as Postgres bytea. Null for
+     * conversions recorded before file storage was added, and for every
+     * conversion stored in Vercel Blob (see `outputBlobPath`). Never
+     * migrated or cleared — downloads read it when there is no Blob path.
+     */
     fileData: bytea("file_data"),
+    /** Output MIME type. Populated for both bytea- and Blob-backed rows. */
     mimeType: text("mime_type"),
+    /** Output size in bytes. Populated for both bytea- and Blob-backed rows. */
     fileSize: integer("file_size"),
+    /**
+     * Vercel Blob pathname (not a URL) of the uploaded input / converted
+     * output, always `users/{userId}/conversions/{id}/(input|output).{ext}`
+     * — see lib/blobStorage.ts. Null for legacy rows. The store is private,
+     * so these are only readable server-side, through the download route.
+     */
+    inputBlobPath: text("input_blob_path"),
+    outputBlobPath: text("output_blob_path"),
+    /** Input size in bytes / MIME type as reported by the upload (may be null). */
+    inputFileSize: integer("input_file_size"),
+    inputMimeType: text("input_mime_type"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("conversions_user_id_created_at_idx").on(table.userId, table.createdAt),
     index("conversions_collection_id_idx").on(table.collectionId),
+    // One Blob object belongs to exactly one row, so deleting a row's Blobs
+    // can never remove a file another row still points at. Also backs the
+    // orphan sweep's path lookups.
+    uniqueIndex("conversions_input_blob_path_unique")
+      .on(table.inputBlobPath)
+      .where(sql`${table.inputBlobPath} is not null`),
+    uniqueIndex("conversions_output_blob_path_unique")
+      .on(table.outputBlobPath)
+      .where(sql`${table.outputBlobPath} is not null`),
   ]
 );
 

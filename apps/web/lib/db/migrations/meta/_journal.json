@@ -43,6 +43,13 @@
       "when": 1789907971373,
       "tag": "0005_worried_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789910047068,
+      "tag": "0006_conversions_blob_storage",
+      "breakpoints": true
     }
   ]
 }
