@@ -4,6 +4,7 @@ import { runConversion, ConversionError } from "@/lib/conversions";
 import { getJobIdForError } from "@/lib/jobs";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
+import { recordUsageEvent } from "@/lib/usage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -57,13 +58,33 @@ export async function POST(req: NextRequest) {
 
   const inputBuffer = Buffer.from(await file.arrayBuffer());
 
+  // Recorded once we're about to attempt a conversion with a well-formed,
+  // authenticated request — i.e. exactly the calls that reach here, whether
+  // the conversion itself then succeeds or fails. Requests rejected above
+  // (bad/missing key, rate limited, no file/type, too large) never reach
+  // this point and so record no api_request event. Tied to this call's job
+  // id (once known) so a retry of *this same job* can't double-count it;
+  // a client resending the request after a timeout runs a new conversion
+  // with a new job id and is a separate real request, so it legitimately
+  // records its own event — see lib/usage.ts.
+  async function recordApiRequest(jobId: string | null) {
+    try {
+      await recordUsageEvent({ userId: auth!.userId, jobId, type: "api_request", amount: 1 });
+    } catch (e) {
+      console.error("Usage: recording api_request failed", e);
+    }
+  }
+
   try {
     const { buffer, filename, mimeType, conversionId, jobId } = await runConversion({
       userId: auth.userId,
       conversionType,
       buffer: inputBuffer,
       filename: file.name,
+      inputMimeType: file.type,
     });
+
+    await recordApiRequest(jobId);
 
     const headers: Record<string, string> = {
       "Content-Type": mimeType,
@@ -75,6 +96,8 @@ export async function POST(req: NextRequest) {
     return new Response(new Uint8Array(buffer), { headers });
   } catch (err) {
     const jobId = getJobIdForError(err);
+    await recordApiRequest(jobId);
+
     const errorHeaders: Record<string, string> = jobId ? { "X-Job-Id": jobId } : {};
     if (err instanceof ConversionError) {
       return NextResponse.json(
