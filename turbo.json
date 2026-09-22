@@ -8,6 +8,7 @@
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
       "env": [
         "DATABASE_URL",
+        "BLOB_READ_WRITE_TOKEN",
         "JWT_ACCESS_SECRET",
         "TOKEN_PEPPER",
         "APP_URL",
