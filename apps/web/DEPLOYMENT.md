@@ -69,7 +69,32 @@ files fail with a clear message instead of a raw platform 413.
 
 `app/api/convert/route.ts` sets `export const maxDuration = 60` (mirrored in
 `vercel.json`). 60s works on Hobby; if conversions of large files are timing
-out, Pro plans can raise this to 300s.
+out, Pro plans can raise this to 300s. This route (the session-authenticated
+web UI) still runs conversions synchronously — see the next section for the
+route that doesn't.
+
+## 7. Asynchronous API conversions (Vercel Queues)
+
+`POST /api/v1/convert` is asynchronous: it durably stores the upload and
+schedules a job, then `app/api/queues/process-conversion/route.ts` — a
+private function Vercel invokes directly, never reachable over the internet
+— does the actual conversion. This needs **Vercel Queues** enabled on the
+project:
+
+- Vercel dashboard → the project → check that Queues is available (the
+  `queue/v2beta` trigger in `vercel.json` is what wires the consumer up;
+  no separate topic-creation step is needed, the first `send()` creates it).
+- No new environment variable: `@vercel/queue` authenticates via Vercel's
+  own OIDC, provisioned automatically on deploy, the same as other
+  Vercel-managed integrations.
+- The consumer's `maxDuration` (300s, in `app/api/queues/process-conversion/route.ts`)
+  is the ceiling for one conversion attempt. See the Phase 4 report for
+  which converters can realistically approach that on Hobby, and why very
+  large files may need Pro's higher duration limit.
+- `reclaimStaleJobs` (`lib/jobProcessor.ts`) recovers a job stuck
+  "processing" if its queue message is ever lost outright — it isn't wired
+  to a cron job yet; see the Phase 4 report before deciding whether/how to
+  schedule it.
 
 ## Post-deploy checklist
 
@@ -77,4 +102,6 @@ out, Pro plans can raise this to 300s.
 - [ ] All required env vars set for the Production (and Preview, if used) environment
 - [ ] Google OAuth redirect URI updated with the real domain
 - [ ] Resend sender domain verified (or accept reset links only reaching logs)
+- [ ] Vercel Queues enabled on the project (see §7)
 - [ ] Sign up, log in, convert a file, and request a password reset once against the deployed URL
+- [ ] `POST /api/v1/convert` with an API key returns 202, and `GET /api/v1/jobs/:id` reaches "completed"
