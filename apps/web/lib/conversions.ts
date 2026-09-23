@@ -77,7 +77,8 @@ function describeFailure(err: unknown): { code: string; message: string } {
  *     they're left for the orphan sweep in lib/conversionStorage.ts).
  * Callers treat a throw as "the conversion succeeded but wasn't saved".
  */
-async function storeConversion({
+/** Exported for lib/jobProcessor.ts (Phase 4), which calls this directly after running its own conversion. */
+export async function storeConversion({
   userId,
   collectionId,
   filename,

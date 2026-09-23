@@ -16,6 +16,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.3",
     "@vercel/blob": "^2.8.0",
+    "@vercel/queue": "^0.6.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",

@@ -1,6 +1,6 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { conversions } from "@/lib/db/schema";
+import { conversions, jobs } from "@/lib/db/schema";
 import {
   deleteBlobs,
   deleteBlobsBestEffort,
@@ -8,6 +8,7 @@ import {
   isConversionBlobPathFor,
   listBlobs,
   parseConversionBlobPath,
+  parseJobInputBlobPath,
   userBlobPrefix,
 } from "@/lib/blobStorage";
 
@@ -149,13 +150,18 @@ export const DEFAULT_ORPHAN_MIN_AGE_MS = 60 * 60 * 1000;
 const DEFAULT_MAX_BLOBS = 5000;
 const LOOKUP_BATCH = 200;
 
-export interface OrphanCandidate {
+export type OrphanCandidate = {
   pathname: string;
   size: number;
   uploadedAt: Date;
   userId: string;
-  conversionId: string;
-}
+} & (
+  | { kind: "conversion"; conversionId: string }
+  // Phase 4: an async job's input Blob (users/{userId}/jobs/{jobId}/input.*),
+  // orphaned if lib/jobProcessor.ts never got to clean it up — see
+  // lib/blobStorage.ts's buildJobInputBlobPath.
+  | { kind: "job_input"; jobId: string }
+);
 
 export interface OrphanReport {
   /** Objects examined (up to `maxBlobs`). */
@@ -178,10 +184,12 @@ interface FindOrphansOptions {
 }
 
 /**
- * Read-only. Lists Blob objects and returns those that no `conversions` row
- * references by exact pathname (as either its input or output). Conservative:
- * recent objects and anything not shaped like a conversion path are skipped,
- * and a database error aborts the scan rather than guessing.
+ * Read-only. Lists Blob objects and returns those no row references by exact
+ * pathname: a `conversions` row (as either its input or output) for a
+ * conversion-scoped path, or a `jobs` row (as its input) for a job-scoped
+ * one. Conservative: recent objects and anything not shaped like either
+ * known path layout are skipped, and a database error aborts the scan rather
+ * than guessing.
  */
 export async function findOrphanedBlobs({
   minAgeMs = DEFAULT_ORPHAN_MIN_AGE_MS,
@@ -196,7 +204,8 @@ export async function findOrphanedBlobs({
     truncated: false,
   };
   const cutoff = Date.now() - minAgeMs;
-  const candidates: OrphanCandidate[] = [];
+  const conversionCandidates: (OrphanCandidate & { kind: "conversion" })[] = [];
+  const jobCandidates: (OrphanCandidate & { kind: "job_input" })[] = [];
 
   for await (const blob of listBlobs(userId ? userBlobPrefix(userId) : "users/")) {
     if (report.scanned >= maxBlobs) {
@@ -205,8 +214,9 @@ export async function findOrphanedBlobs({
     }
     report.scanned++;
 
-    const parsed = parseConversionBlobPath(blob.pathname);
-    if (!parsed) {
+    const conversionPath = parseConversionBlobPath(blob.pathname);
+    const jobPath = conversionPath ? null : parseJobInputBlobPath(blob.pathname);
+    if (!conversionPath && !jobPath) {
       report.unrecognized.push(blob.pathname);
       continue;
     }
@@ -214,17 +224,37 @@ export async function findOrphanedBlobs({
       report.tooRecent++;
       continue;
     }
-    candidates.push({ ...blob, userId: parsed.userId, conversionId: parsed.conversionId });
+    if (conversionPath) {
+      conversionCandidates.push({
+        ...blob,
+        kind: "conversion",
+        userId: conversionPath.userId,
+        conversionId: conversionPath.conversionId,
+      });
+    } else if (jobPath) {
+      jobCandidates.push({ ...blob, kind: "job_input", userId: jobPath.userId, jobId: jobPath.jobId });
+    }
   }
 
-  for (let i = 0; i < candidates.length; i += LOOKUP_BATCH) {
-    const batch = candidates.slice(i, i + LOOKUP_BATCH);
+  for (let i = 0; i < conversionCandidates.length; i += LOOKUP_BATCH) {
+    const batch = conversionCandidates.slice(i, i + LOOKUP_BATCH);
     const paths = batch.map((c) => c.pathname);
     const referenced = await db
       .select({ input: conversions.inputBlobPath, output: conversions.outputBlobPath })
       .from(conversions)
       .where(or(inArray(conversions.inputBlobPath, paths), inArray(conversions.outputBlobPath, paths)));
     const live = new Set(referenced.flatMap((r) => [r.input, r.output]));
+    for (const c of batch) if (!live.has(c.pathname)) report.orphans.push(c);
+  }
+
+  for (let i = 0; i < jobCandidates.length; i += LOOKUP_BATCH) {
+    const batch = jobCandidates.slice(i, i + LOOKUP_BATCH);
+    const paths = batch.map((c) => c.pathname);
+    const referenced = await db
+      .select({ input: jobs.inputBlobPath })
+      .from(jobs)
+      .where(inArray(jobs.inputBlobPath, paths));
+    const live = new Set(referenced.map((r) => r.input));
     for (const c of batch) if (!live.has(c.pathname)) report.orphans.push(c);
   }
 

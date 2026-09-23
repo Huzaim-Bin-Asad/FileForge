@@ -75,11 +75,17 @@ function getExtension(filename: string): string {
   return match ? match[1]!.toLowerCase() : "";
 }
 
-export async function convertFile(
+/**
+ * Resolves `(conversionType, filename)` to a handler without running it —
+ * the exact same checks `convertFile` makes before it calls the handler,
+ * pulled out so a caller can validate a request up front (e.g. before
+ * enqueueing an async job) and get the identical ConversionError a rejected
+ * synchronous conversion would have thrown.
+ */
+export function resolveConversionHandler(
   conversionType: string,
-  buffer: Buffer,
   filename: string
-): Promise<ConvertedFile> {
+): { handler: Handler; sourceFormat: string } {
   const definition = CONVERSION_REGISTRY[conversionType];
 
   if (!definition) {
@@ -106,6 +112,15 @@ export async function convertFile(
     );
   }
 
+  return { handler, sourceFormat };
+}
+
+export async function convertFile(
+  conversionType: string,
+  buffer: Buffer,
+  filename: string
+): Promise<ConvertedFile> {
+  const { handler, sourceFormat } = resolveConversionHandler(conversionType, filename);
   const result = await handler(buffer, filename);
 
   return {

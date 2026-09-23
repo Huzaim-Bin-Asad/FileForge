@@ -24,6 +24,12 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const CONVERSION_BLOB_PATH = new RegExp(
   `^users/(${UUID})/conversions/(${UUID})/(input|output)\\.[a-z0-9]{1,10}$`
 );
+// Phase 4: where an async job's input lives from the moment it's uploaded
+// (before the request returns) until the processor claims it and moves the
+// result into the conversion-scoped path above. Deliberately a different
+// shape from the conversion path — a job id is not a conversion id, and
+// nothing here is ever a download target.
+const JOB_INPUT_BLOB_PATH = new RegExp(`^users/(${UUID})/jobs/(${UUID})/input\\.[a-z0-9]{1,10}$`);
 const UUID_RE = new RegExp(`^${UUID}$`);
 
 export type BlobRole = "input" | "output";
@@ -87,6 +93,44 @@ export function isConversionBlobPathFor(
   return parsed?.userId === userId && parsed.conversionId === conversionId;
 }
 
+/**
+ * `users/{userId}/jobs/{jobId}/input.{ext}` — the durable home for an async
+ * job's input from the moment `POST /api/v1/convert` uploads it until
+ * lib/jobProcessor.ts deletes it (after the result is safely stored under
+ * the conversion-scoped path via `storeConversion`).
+ */
+export function buildJobInputBlobPath({
+  userId,
+  jobId,
+  extension,
+}: {
+  userId: string;
+  jobId: string;
+  extension: string;
+}): string {
+  assertUuid(userId, "userId");
+  assertUuid(jobId, "jobId");
+  const ext = safeExtension(`x.${extension}`);
+  return `users/${userId}/jobs/${jobId}/input.${ext}`;
+}
+
+export function parseJobInputBlobPath(
+  pathname: string
+): { userId: string; jobId: string } | null {
+  const m = JOB_INPUT_BLOB_PATH.exec(pathname);
+  return m ? { userId: m[1], jobId: m[2] } : null;
+}
+
+/** True only when `pathname` is exactly this user's input Blob for this job. */
+export function isJobInputBlobPathFor(
+  pathname: string | null | undefined,
+  { userId, jobId }: { userId: string; jobId: string }
+): pathname is string {
+  if (!pathname) return false;
+  const parsed = parseJobInputBlobPath(pathname);
+  return parsed?.userId === userId && parsed.jobId === jobId;
+}
+
 let warnedUnconfigured = false;
 
 /**
@@ -128,6 +172,18 @@ export async function readBlob(
   const result = await get(pathname, { access: ACCESS, useCache: false });
   if (!result || result.statusCode !== 200) return null;
   return { stream: result.stream, size: result.blob.size };
+}
+
+/**
+ * Like `readBlob`, but buffered — for callers that need the whole object in
+ * memory (e.g. lib/jobProcessor.ts, which hands it to a converter that
+ * takes a `Buffer`). Returns null when the object doesn't exist.
+ */
+export async function readBlobAsBuffer(pathname: string): Promise<Buffer | null> {
+  const blob = await readBlob(pathname);
+  if (!blob) return null;
+  const arrayBuffer = await new Response(blob.stream).arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 /**

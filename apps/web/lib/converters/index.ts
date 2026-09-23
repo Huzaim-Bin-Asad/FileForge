@@ -1,2 +1,2 @@
-export { convertFile, ConversionError } from "./registry";
+export { convertFile, resolveConversionHandler, ConversionError } from "./registry";
 export type { ConversionResult } from "./types";
