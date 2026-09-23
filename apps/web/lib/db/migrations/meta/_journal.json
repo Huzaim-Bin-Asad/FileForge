@@ -50,6 +50,13 @@
       "when": 1789910047068,
       "tag": "0006_conversions_blob_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790127307378,
+      "tag": "0007_jobs_async_processing",
+      "breakpoints": true
     }
   ]
 }

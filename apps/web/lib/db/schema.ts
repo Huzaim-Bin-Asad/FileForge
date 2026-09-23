@@ -133,8 +133,16 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /**
  * Lifecycle state for a conversion attempt, kept separate from the history
- * row in `conversions` so a failed attempt can be recorded too. Conversions
- * still run synchronously inside the request; this is not a work queue.
+ * row in `conversions` so a failed attempt can be recorded too.
+ *
+ * Since Phase 4, `/api/v1/convert` jobs run asynchronously (Vercel Queues
+ * invokes lib/jobProcessor.ts after the request that created the job has
+ * already returned) — this table is the durable, queryable source of truth
+ * for a job's status while it's in flight, and `started_at` doubles as the
+ * claim lease: see lib/jobProcessor.ts for the atomic claim query and the
+ * staleness window used to reclaim a job whose processor never finished.
+ * `/api/convert` (the session-authenticated web UI) still runs synchronously
+ * and still uses this table exactly as before Phase 4.
  */
 export const jobs = pgTable(
   "jobs",
@@ -150,6 +158,20 @@ export const jobs = pgTable(
     /** The conversion type requested, e.g. "pdf-word". */
     type: text("type").notNull(),
     status: text("status").$type<JobStatus>().notNull().default("queued"),
+    /**
+     * The uploaded input, durable in Vercel Blob before the enqueueing
+     * request returns (`users/{userId}/jobs/{id}/input.{ext}` — see
+     * lib/blobStorage.ts). Only asynchronous jobs (Phase 4) set these; a job
+     * created by the synchronous web UI leaves them null, since the input
+     * never needs to outlive that request. The processor deletes the object
+     * once the result is durably stored in `conversions`, so a null value on
+     * a completed job doesn't imply one was never used.
+     */
+    inputBlobPath: text("input_blob_path"),
+    inputFileSize: integer("input_file_size"),
+    inputMimeType: text("input_mime_type"),
+    /** The uploaded filename, needed to run the conversion and later record it — see above. */
+    originalFilename: text("original_filename"),
     /** 0–100. */
     progress: integer("progress").notNull().default(0),
     errorCode: text("error_code"),
@@ -164,6 +186,14 @@ export const jobs = pgTable(
     index("jobs_user_id_created_at_idx").on(table.userId, table.createdAt),
     index("jobs_conversion_id_idx").on(table.conversionId),
     index("jobs_status_created_at_idx").on(table.status, table.createdAt),
+    // Backs the stale-job reclaim query in lib/jobProcessor.ts (jobs stuck
+    // "processing" past the claim lease) and a future recovery sweep.
+    index("jobs_status_started_at_idx").on(table.status, table.startedAt),
+    // One Blob object belongs to exactly one job, same reasoning as the two
+    // conversions.*_blob_path indexes above.
+    uniqueIndex("jobs_input_blob_path_unique")
+      .on(table.inputBlobPath)
+      .where(sql`${table.inputBlobPath} is not null`),
     check(
       "jobs_status_check",
       sql`${table.status} in ('queued', 'processing', 'completed', 'failed', 'cancelled')`

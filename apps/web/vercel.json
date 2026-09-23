@@ -3,6 +3,9 @@
   "functions": {
     "app/api/convert/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/queues/process-conversion/route.ts": {
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "conversion-jobs" }]
     }
   }
 }
