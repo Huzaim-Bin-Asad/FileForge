@@ -2,15 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FolderOpen, CheckCircle2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, FolderOpen, Loader2, XCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
 import FileDropzone from "@/components/convert/FileDropzone";
 import {
   ACCEPTED_EXTENSIONS,
   getTargetsForExtension,
-  normalizeExtension,
-  type ConversionPair,
   type ConversionTarget,
 } from "@/lib/converters/catalog";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
@@ -21,71 +20,65 @@ interface CollectionRef {
   name: string;
 }
 
+/** One conversion attempted in this browser session, shown with its outcome. */
+interface Attempt {
+  id: number;
+  filename: string;
+  targetLabel: string;
+  status: "processing" | "completed" | "failed";
+  message?: string;
+  /** Set when the result was saved to history (signed-in users). */
+  conversionId?: string | null;
+}
+
+const ACCEPT = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(",");
+
 function getExtension(filename: string): string {
   const match = filename.match(/\.([^.]+)$/);
   return match ? match[1]!.toLowerCase() : "";
 }
 
-/** Direction is inferred from the uploaded file; only valid when it matches one side of the pair. */
-function getTargetForPair(pair: ConversionPair, sourceExt: string): ConversionTarget | null {
-  const normalized = normalizeExtension(sourceExt);
-  const idx = pair.extensions.indexOf(normalized);
-  if (idx === -1) return null;
-  const targetExt = pair.extensions[1 - idx]!;
-  return { type: pair.type, targetExt, targetLabel: pair.labels[targetExt]! };
-}
-
-export default function ConvertPanel({
-  collections = [],
-  initialPair,
-}: {
-  collections?: CollectionRef[];
-  initialPair?: ConversionPair;
-}) {
+export default function ConvertPanel({ collections = [] }: { collections?: CollectionRef[] }) {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
-  const [target, setTarget] = useState<ConversionTarget | null>(null);
+  const [chosen, setChosen] = useState<ConversionTarget | null>(null);
   const [collectionId, setCollectionId] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  const [conversionId, setConversionId] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
 
   const sourceExt = file ? getExtension(file.name) : "";
   const targets = useMemo(() => (sourceExt ? getTargetsForExtension(sourceExt) : []), [sourceExt]);
-
-  const pairLabel = initialPair
-    ? `${initialPair.labels[initialPair.extensions[0]]} ↔ ${initialPair.labels[initialPair.extensions[1]]}`
-    : null;
-  const pairAccept = initialPair
-    ? initialPair.extensions.map((ext) => `.${ext}`).join(",")
-    : ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(",");
-  const pairMismatch = initialPair && file && !getTargetForPair(initialPair, sourceExt);
+  // A file with exactly one possible output (e.g. .txt → PDF) needs no choosing.
+  const target = chosen ?? (targets.length === 1 ? targets[0]! : null);
+  const busy = attempts.some((a) => a.status === "processing");
 
   function selectFile(next: File | null) {
     setFile(next);
-    setError(null);
-    setConversionId(null);
-    if (next && next.size > MAX_UPLOAD_BYTES) {
-      setError(`That file is too large. FileForge accepts files up to ${MAX_UPLOAD_LABEL}.`);
-      setTarget(null);
-      return;
-    }
-    if (initialPair) {
-      setTarget(next ? getTargetForPair(initialPair, getExtension(next.name)) : null);
-    } else {
-      setTarget(null);
-    }
+    setChosen(null);
+    setError(
+      next && next.size > MAX_UPLOAD_BYTES
+        ? `That file is too large. FileForge accepts files up to ${MAX_UPLOAD_LABEL}.`
+        : null
+    );
+  }
+
+  function patchAttempt(id: number, patch: Partial<Attempt>) {
+    setAttempts((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   }
 
   async function handleConvert() {
-    if (!file || !target) return;
-    setLoading(true);
+    if (!file || !target || file.size > MAX_UPLOAD_BYTES) return;
+    const id = Date.now();
+    const submitted = file;
     setError(null);
-    setDone(false);
-    setConversionId(null);
+    setAttempts((list) => [
+      { id, filename: submitted.name, targetLabel: target.targetLabel, status: "processing" },
+      ...list,
+    ]);
+
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", submitted);
       formData.append("conversionType", target.type);
       if (collectionId) formData.append("collectionId", collectionId);
 
@@ -93,13 +86,13 @@ export default function ConvertPanel({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({ error: "Conversion failed." }));
-        setError(data.error ?? "Conversion failed.");
+        patchAttempt(id, { status: "failed", message: data.error ?? "Conversion failed." });
         return;
       }
 
       const disposition = response.headers.get("Content-Disposition") ?? "";
       const match = disposition.match(/filename="(.+)"/);
-      const downloadName = match ? match[1]! : file.name;
+      const downloadName = match ? match[1]! : submitted.name;
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -109,60 +102,44 @@ export default function ConvertPanel({
       link.click();
       window.URL.revokeObjectURL(url);
 
-      setDone(true);
-      setConversionId(response.headers.get("X-Conversion-Id"));
+      patchAttempt(id, {
+        status: "completed",
+        conversionId: response.headers.get("X-Conversion-Id"),
+      });
+      setFile(null);
+      setChosen(null);
+      // Re-render the server-fetched "Recent conversions" beside the panel.
+      router.refresh();
     } catch (err) {
       console.error(err);
-      setError("Something went wrong.");
-    } finally {
-      setLoading(false);
+      patchAttempt(id, { status: "failed", message: "Something went wrong." });
     }
   }
 
   return (
-    <div className="w-full rounded-2xl border border-line bg-surface-elevated p-6 shadow-sm sm:p-8">
-      {pairLabel && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-ember-soft px-4 py-3">
-          <p className="text-sm font-semibold text-ember-deep">{pairLabel}</p>
-          <Link
-            href="/convert"
-            className="inline-flex items-center gap-1 text-xs font-medium text-ember-deep/80 hover:text-ember-deep"
-          >
-            <X className="h-3.5 w-3.5" />
-            Change
-          </Link>
-        </div>
-      )}
-
+    <div className="w-full rounded-2xl border border-line bg-surface-elevated p-5 shadow-sm sm:p-7">
       <div className="space-y-6">
-        <FileDropzone file={file} onFileSelect={selectFile} accept={pairAccept} />
+        <FileDropzone file={file} onFileSelect={selectFile} accept={ACCEPT} />
 
-        {pairMismatch && initialPair && (
-          <Alert>
-            This converter only accepts {initialPair.extensions.map((e) => `.${e}`).join(" or ")}{" "}
-            files.
-          </Alert>
-        )}
-
-        {!initialPair && file && targets.length === 0 && (
+        {file && targets.length === 0 && (
           <Alert>
             FileForge doesn&apos;t support .{sourceExt} files yet. Supported types:{" "}
             {ACCEPTED_EXTENSIONS.join(", ")}.
           </Alert>
         )}
 
-        {!initialPair && targets.length > 0 && (
+        {targets.length > 0 && (
           <div>
-            <p className="mb-2 text-sm font-medium text-ink">Convert to</p>
+            <p className="mb-2 text-sm font-medium text-ink">
+              {targets.length === 1 ? "Converts to" : "Convert to"}
+            </p>
             <div className="flex flex-wrap gap-2">
               {targets.map((t) => (
                 <button
                   key={t.type}
                   type="button"
-                  onClick={() => {
-                    setTarget(t);
-                    setConversionId(null);
-                  }}
+                  aria-pressed={target?.type === t.type}
+                  onClick={() => setChosen(t)}
                   className={cn(
                     "rounded-lg border px-3.5 py-2 text-sm font-medium transition",
                     target?.type === t.type
@@ -209,30 +186,64 @@ export default function ConvertPanel({
           {error}
         </p>
       )}
-      {done && !error && (
-        <p className="mt-4 flex items-center gap-2 rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-sm text-success">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          {conversionId ? (
-            <>
-              Converted and saved.{" "}
-              <Link href="/history" className="font-semibold underline underline-offset-2">
-                View in history
-              </Link>
-            </>
-          ) : (
-            "Converted. Check your downloads."
-          )}
-        </p>
-      )}
 
       <Button
-        disabled={!file || !target || loading}
-        loading={loading}
+        disabled={!file || !target || busy || file.size > MAX_UPLOAD_BYTES}
+        loading={busy}
         onClick={handleConvert}
         className="mt-6 w-full"
       >
-        Convert
+        {busy ? "Converting…" : target ? `Convert to ${target.targetLabel}` : "Convert"}
       </Button>
+
+      {attempts.length > 0 && (
+        <div className="mt-6 border-t border-line pt-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            This session
+          </p>
+          <ul className="flex flex-col gap-2" aria-live="polite">
+            {attempts.map((a) => (
+              <li
+                key={a.id}
+                className="flex items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
+              >
+                {a.status === "processing" ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-ember" />
+                ) : a.status === "completed" ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                ) : (
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-ink">
+                    {a.filename} <span className="text-ink-muted">→ {a.targetLabel}</span>
+                  </p>
+                  <p
+                    className={cn(
+                      "text-xs",
+                      a.status === "failed" ? "text-danger" : "text-ink-muted"
+                    )}
+                  >
+                    {a.status === "processing" && "Processing…"}
+                    {a.status === "completed" &&
+                      (a.conversionId ? (
+                        <>
+                          Completed and saved ·{" "}
+                          <Link href="/history" className="font-medium underline underline-offset-2">
+                            View in history
+                          </Link>
+                        </>
+                      ) : (
+                        "Completed · check your downloads"
+                      ))}
+                    {a.status === "failed" && `Failed · ${a.message}`}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
