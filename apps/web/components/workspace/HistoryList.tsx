@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Download, FileText, FolderInput } from "lucide-react";
+import { Check, Download, FileText, FolderInput, FolderMinus, Loader2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { relativeTime } from "@/lib/dashboard/stats";
+import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 interface Item {
   id: string;
@@ -32,18 +34,36 @@ export default function HistoryList({
   const router = useRouter();
   const [moving, setMoving] = useState<Item | null>(null);
   const [busy, setBusy] = useState(false);
+  // Which row is in flight, so only that one shows a spinner — "move(null)"
+  // is a real request (remove from collection), so a sentinel string tells
+  // it apart from "nothing pending", which null alone can't do here.
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const REMOVE = "__remove__";
 
   async function move(collectionId: string | null) {
     if (!moving) return;
     setBusy(true);
-    await fetch(`/api/conversions/${moving.id}`, {
+    setPendingId(collectionId ?? REMOVE);
+    const res = await fetch(`/api/conversions/${moving.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ collectionId }),
     });
     setBusy(false);
+    setPendingId(null);
+
+    if (!res.ok) {
+      toast.error("Couldn't update the collection. Try again.");
+      return; // Leave the modal open so the user can retry.
+    }
+
     setMoving(null);
     router.refresh();
+    toast.success(
+      collectionId
+        ? `Moved to ${collections.find((c) => c.id === collectionId)?.name ?? "collection"}`
+        : "Removed from collection"
+    );
   }
 
   return (
@@ -105,26 +125,48 @@ export default function HistoryList({
         size="sm"
       >
         <div className="flex flex-col gap-1">
-          <button
-            onClick={() => move(null)}
-            disabled={busy}
-            className="flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-muted transition hover:bg-surface disabled:opacity-50"
-          >
-            Not in a collection
-            {moving?.collectionId === null && <Check className="h-4 w-4 text-ember" strokeWidth={2.5} />}
-          </button>
-          {collections.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => move(c.id)}
-              disabled={busy}
-              className="flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink transition hover:bg-surface disabled:opacity-50"
-            >
-              {c.name}
-              {moving?.collectionId === c.id && <Check className="h-4 w-4 text-ember" strokeWidth={2.5} />}
-            </button>
-          ))}
+          {collections.map((c) => {
+            const active = moving?.collectionId === c.id;
+            const pending = pendingId === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={() => move(c.id)}
+                disabled={busy}
+                className={cn(
+                  "flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition disabled:opacity-50",
+                  active ? "bg-ember-soft font-medium text-ember-deep" : "text-ink hover:bg-surface"
+                )}
+              >
+                {c.name}
+                {pending ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" strokeWidth={2} />
+                ) : (
+                  active && <Check className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Only relevant when the file is actually filed somewhere — no
+            redundant "not in a collection" row otherwise. */}
+        {moving?.collectionId !== null && (
+          <div className="mt-2 border-t border-line pt-2">
+            <button
+              onClick={() => move(null)}
+              disabled={busy}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-ink-muted transition hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+            >
+              {pendingId === REMOVE ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" strokeWidth={2} />
+              ) : (
+                <FolderMinus className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+              )}
+              Remove from collection
+            </button>
+          </div>
+        )}
       </Modal>
     </div>
   );

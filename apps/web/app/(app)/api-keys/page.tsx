@@ -11,6 +11,24 @@ export const metadata = {
   title: "API Keys | FileForge",
 };
 
+/**
+ * Minimal hand-rolled syntax coloring for the curl examples below — same
+ * three hues components/site/ApiSection.tsx uses for its JSON snippet, so
+ * the app's two code blocks read as one visual language rather than two.
+ */
+function Cmd({ children }: { children: React.ReactNode }) {
+  return <span className="text-[#7ddea8]">{children}</span>;
+}
+function Flag({ children }: { children: React.ReactNode }) {
+  return <span className="text-[#ff9a6b]">{children}</span>;
+}
+function Str({ children }: { children: React.ReactNode }) {
+  return <span className="text-[#ffd38a]">{children}</span>;
+}
+function Comment({ children }: { children: React.ReactNode }) {
+  return <span className="text-white/40">{children}</span>;
+}
+
 export default async function ApiKeysPage() {
   const user = await getSessionUser();
   if (!user) {
@@ -54,15 +72,42 @@ export default async function ApiKeysPage() {
             <code className="rounded bg-surface px-1 py-0.5 font-mono text-[13px]">
               Authorization
             </code>{" "}
-            header. The response body is the converted file.
+            header. Conversions run asynchronously: this returns a job id right
+            away, and you poll it until the job finishes.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-xl bg-ink px-4 py-3.5 text-xs leading-relaxed text-white">
-            {`curl ${appUrl}/api/v1/convert \\
-  -H "Authorization: Bearer ff_live_..." \\
-  -F "file=@report.pdf" \\
-  -F "conversionType=pdf-word" \\
-  -o report.docx`}
+
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            1. Submit the file
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-xl bg-ink px-4 py-3.5 text-xs leading-relaxed text-white/85">
+            <code>
+              <Cmd>curl</Cmd> {appUrl}/api/v1/convert \{"\n"}
+              {"  "}
+              <Flag>-H</Flag> <Str>&quot;Authorization: Bearer ff_live_...&quot;</Str> \{"\n"}
+              {"  "}
+              <Flag>-F</Flag> <Str>&quot;file=@report.pdf&quot;</Str> \{"\n"}
+              {"  "}
+              <Flag>-F</Flag> <Str>&quot;conversionType=pdf-word&quot;</Str>
+              {"\n"}
+              <Comment># → {`{ "job_id": "2f9b1c...", "status": "queued" }`}</Comment>
+            </code>
           </pre>
+
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            2. Poll until it&apos;s done
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-xl bg-ink px-4 py-3.5 text-xs leading-relaxed text-white/85">
+            <code>
+              <Cmd>curl</Cmd> {appUrl}/api/v1/jobs/2f9b1c... \{"\n"}
+              {"  "}
+              <Flag>-H</Flag> <Str>&quot;Authorization: Bearer ff_live_...&quot;</Str>
+              {"\n"}
+              <Comment>
+                # → {`{ "status": "completed", "conversion_id": "8a1c..." }`}
+              </Comment>
+            </code>
+          </pre>
+
           <p className="mt-3 text-xs text-ink-muted">
             <code className="rounded bg-surface px-1 py-0.5 font-mono text-[12px]">
               conversionType
@@ -72,7 +117,8 @@ export default async function ApiKeysPage() {
             <code className="font-mono">pdf-html</code>, <code className="font-mono">pdf-markdown</code>,{" "}
             <code className="font-mono">word-markdown</code>, <code className="font-mono">epub-pdf</code>,{" "}
             <code className="font-mono">txt-pdf</code> — the direction is inferred from the uploaded
-            file&apos;s extension. Conversions made this way show up in your account&apos;s history too.
+            file&apos;s extension. Conversions made this way show up in your account&apos;s history too,
+            where you can download the result once it&apos;s ready.
           </p>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FolderOpen, MoreHorizontal, Plus } from "lucide-react";
+import { FolderOpen, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 
 interface Collection {
@@ -135,8 +135,9 @@ export default function CollectionsManager({
                             setName(c.name);
                             setRenaming(c);
                           }}
-                          className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-surface"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface"
                         >
+                          <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
                           Rename
                         </button>
                         <button
@@ -144,8 +145,9 @@ export default function CollectionsManager({
                             setMenuFor(null);
                             setDeleting(c);
                           }}
-                          className="block w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-danger hover:bg-danger-soft"
                         >
+                          <Trash2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
                           Delete
                         </button>
                       </div>
