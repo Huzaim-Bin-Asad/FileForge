@@ -72,6 +72,18 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
   });
 
   if (!tokenResponse.ok) {
+    // Logged server-side only, never in the thrown message (which the
+    // callback route's catch surfaces, generically, to the client) — but
+    // this is exactly what distinguishes "GOOGLE_CLIENT_SECRET is wrong/
+    // stale" (Google returns invalid_client) from "redirect_uri isn't
+    // registered for this exact URL" (redirect_uri_mismatch) from a dozen
+    // other causes, none of which are visible without it.
+    const body = await tokenResponse.text().catch(() => "<unreadable>");
+    console.error(
+      `Google token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`,
+      `redirect_uri=${config.redirectUri}`,
+      body
+    );
     throw new Error("Failed to exchange Google authorization code.");
   }
 
@@ -85,6 +97,8 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
   });
 
   if (!userResponse.ok) {
+    const body = await userResponse.text().catch(() => "<unreadable>");
+    console.error(`Google userinfo fetch failed: ${userResponse.status} ${userResponse.statusText}`, body);
     throw new Error("Failed to fetch Google user info.");
   }
 

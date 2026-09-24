@@ -45,7 +45,15 @@ export async function createSession(user: SessionUser) {
   });
   cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, {
     ...baseCookieOptions,
-    path: "/api/auth",
+    // Must be "/" — proxy.ts's silent refresh reads this cookie from the
+    // incoming request on protected pages like /dashboard, /history, etc.
+    // A narrower path (e.g. "/api/auth") is never sent by the browser on
+    // those requests, so the cookie would exist but be invisible to the one
+    // thing that needs it, silently breaking session persistence 15 minutes
+    // after every login (the access token's lifetime). Path isn't a
+    // meaningful confidentiality boundary here anyway — httpOnly, Secure in
+    // production, and SameSite=Lax are what actually protect this cookie.
+    path: "/",
     maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
   });
 }
