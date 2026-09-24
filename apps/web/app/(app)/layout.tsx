@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/auth/session";
 import WorkspaceTopbar from "@/components/workspace/WorkspaceTopbar";
 import { WorkspaceSidebar, WorkspaceTabs } from "@/components/workspace/WorkspaceNav";
+import Toaster from "@/components/ui/Toaster";
 
 export default async function AppLayout({
   children,
@@ -21,6 +22,7 @@ export default async function AppLayout({
           </div>
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

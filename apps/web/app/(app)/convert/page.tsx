@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { Download, FileText } from "lucide-react";
+import { Download } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { collections, conversions } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
@@ -8,7 +8,9 @@ import { CONVERSION_PAIRS, getTargetsForExtension } from "@/lib/converters/catal
 import { formatLabel } from "@/lib/dashboard/queries";
 import { relativeTime } from "@/lib/dashboard/stats";
 import ConvertPanel from "@/components/convert/ConvertPanel";
+import FormatIcon from "@/components/convert/FormatIcon";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Convert | FileForge",
@@ -59,16 +61,20 @@ export default async function ConvertPage() {
           : "Drop a file — FileForge detects its type and offers what it can become. Sign in to keep a history."
       }
     >
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="flex flex-col gap-5">
         <ConvertPanel collections={userCollections} />
 
-        <div className="flex flex-col gap-5">
+        {/* Signed out, there's only the formats list — no second column to pair it with. */}
+        <div className={cn("grid items-start gap-5", user && "lg:grid-cols-2")}>
           <section className="rounded-2xl border border-line bg-surface-elevated p-5">
             <h2 className="text-sm font-semibold text-ink">Supported formats</h2>
             <dl className="mt-4 flex flex-col gap-3">
               {SUPPORTED.map((s) => (
-                <div key={s.ext} className="flex items-baseline gap-3">
-                  <dt className="w-20 shrink-0 text-xs font-semibold text-ink">{s.label}</dt>
+                <div key={s.ext} className="flex items-center gap-3">
+                  <dt className="flex w-24 shrink-0 items-center gap-2 text-xs font-semibold text-ink">
+                    <FormatIcon ext={s.ext} size="xs" />
+                    {s.label}
+                  </dt>
                   <dd className="flex flex-wrap gap-1.5">
                     {s.targets.map((t) => (
                       <span
@@ -98,7 +104,7 @@ export default async function ConvertPage() {
                 <ul className="mt-4 divide-y divide-line">
                   {recent.map((r) => (
                     <li key={r.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <FileText className="h-4 w-4 shrink-0 text-ember" strokeWidth={1.7} />
+                      <FormatIcon ext={r.targetFormat} size="xs" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-ink">{r.originalFilename}</p>
                         <p className="text-xs text-ink-muted">

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CheckCircle2, Download, FileText, XCircle } from "lucide-react";
+import { CheckCircle2, Download, XCircle } from "lucide-react";
+import FormatIcon from "@/components/convert/FormatIcon";
 import { formatDurationMs, relativeTime } from "@/lib/dashboard/stats";
 import { formatLabel, type DashboardData } from "@/lib/dashboard/queries";
 import { cn } from "@/lib/utils";
@@ -136,7 +137,7 @@ export function RecentPanel({ recent }: { recent: DashboardData["recent"] }) {
         <ul className="divide-y divide-line">
           {recent.map((r) => (
             <li key={r.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-              <FileText className="h-4 w-4 shrink-0 text-ember" strokeWidth={1.7} />
+              <FormatIcon ext={r.targetFormat} size="xs" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-ink">{r.originalFilename}</p>
                 <p className="text-xs text-ink-muted">
