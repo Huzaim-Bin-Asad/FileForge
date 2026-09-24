@@ -31,6 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${figtree.variable} ${syne.variable} ${geistMono.variable} h-full bg-surface antialiased`}
     >
       <body className="flex min-h-full flex-col bg-surface text-ink">

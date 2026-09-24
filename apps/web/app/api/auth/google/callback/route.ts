@@ -52,6 +52,12 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Tagged so a failure in Vercel's function logs says which step broke —
+  // "Google sign-in failed" alone was previously indistinguishable between
+  // a bad GOOGLE_CLIENT_SECRET, a DB error, and a missing JWT_ACCESS_SECRET/
+  // TOKEN_PEPPER, all of which land in the same catch below. The
+  // user-facing message and status are unchanged either way.
+  let stage = "token_exchange";
   try {
     const googleUser = await exchangeGoogleCode(code);
 
@@ -63,6 +69,7 @@ export async function GET(req: NextRequest) {
 
     const email = googleUser.email.toLowerCase();
 
+    stage = "user_lookup";
     let [user] = await db
       .select()
       .from(users)
@@ -77,6 +84,7 @@ export async function GET(req: NextRequest) {
         .limit(1);
 
       if (byEmail) {
+        stage = "user_link";
         const [linked] = await db
           .update(users)
           .set({
@@ -88,6 +96,7 @@ export async function GET(req: NextRequest) {
           .returning();
         user = linked;
       } else {
+        stage = "user_create";
         const [created] = await db
           .insert(users)
           .values({
@@ -101,13 +110,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    stage = "create_session";
     await createSession({ id: user.id, email: user.email });
 
     const destination = nextPath.startsWith("/") ? nextPath : "/dashboard";
     const response = NextResponse.redirect(new URL(destination, config.appUrl));
     return clearCookies(response);
   } catch (err) {
-    console.error("Google sign-in callback failed:", err);
+    console.error(`Google sign-in callback failed at stage "${stage}":`, err);
     return clearCookies(
       redirectWithError(config.appUrl, "Google sign-in failed. Try again.")
     );

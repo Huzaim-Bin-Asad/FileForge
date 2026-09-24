@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { ChevronLeft, Download, FileText } from "lucide-react";
 import { db } from "@/lib/db/client";
 import { collections, conversions } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
@@ -54,7 +54,7 @@ export default async function CollectionDetailPage({ params }: Params) {
           href="/collections"
           className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface-elevated px-3.5 py-2 text-sm font-medium text-ink transition hover:bg-surface"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-3.5 w-3.5" />
           All collections
         </Link>
       }

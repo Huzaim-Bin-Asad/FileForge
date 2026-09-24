@@ -95,7 +95,12 @@ export async function proxy(request: NextRequest) {
     });
     res.cookies.set(REFRESH_TOKEN_COOKIE, refreshed.cookies.get(REFRESH_TOKEN_COOKIE)!.value, {
       ...cookieOptions,
-      path: "/api/auth",
+      // Must match lib/auth/session.ts's createSession — see its comment.
+      // A "/api/auth"-scoped cookie is never sent back to this same
+      // middleware on the next protected-page request, which is what made
+      // this silent refresh a one-time fluke instead of the persistent
+      // session it's meant to be.
+      path: "/",
       maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
     });
     return res;

@@ -56,7 +56,7 @@ export default function Modal({
         onClick={onClose}
       />
       <div
-        className={`relative w-full ${SIZES[size]} max-h-[90vh] overflow-y-auto rounded-t-2xl border border-line bg-surface-elevated shadow-xl sm:rounded-2xl`}
+        className={`modal-panel relative w-full ${SIZES[size]} max-h-[90vh] overflow-y-auto rounded-t-2xl border border-line bg-surface-elevated sm:rounded-3xl`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
           <div>

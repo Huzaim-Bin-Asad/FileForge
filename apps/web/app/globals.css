@@ -262,6 +262,39 @@ html {
   }
 }
 
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
 .reveal {
   opacity: 0;
   transition:
@@ -328,6 +361,18 @@ html {
 
 .animate-forge-glow {
   animation: forge-glow 7s ease-in-out infinite;
+}
+
+.modal-panel {
+  animation: modal-panel-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-in {
+  animation: toast-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-out {
+  animation: toast-out 0.18s ease-in both;
 }
 
 .section-scroll-hint {
@@ -433,7 +478,10 @@ html {
   .shimmer-border,
   .chart-bar,
   .is-visible .chart-bar,
-  .chart-bars-ready .chart-bar {
+  .chart-bars-ready .chart-bar,
+  .modal-panel,
+  .toast-in,
+  .toast-out {
     animation: none;
   }
   .chart-bar {
