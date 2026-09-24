@@ -58,6 +58,29 @@ redirect URIs** in Google Cloud Console:
 using your real `APP_URL` (both the preview and production domains if you
 test on preview deployments).
 
+**Troubleshooting "Google sign-in failed. Try again."**: this message is
+deliberately generic to the user, but the real cause is always visible in
+the deployment's Function Logs — `app/api/auth/google/callback/route.ts`
+logs a `Google sign-in callback failed at stage "..."` line before it,
+naming exactly which step failed (`token_exchange`, `user_lookup`,
+`user_link`, `user_create`, or `create_session`). Reaching this handler at
+all (rather than Google's own error page, or this app's own "Invalid Google
+sign-in state" message) already means the redirect URI was accepted by
+Google for the initial request. The most common real cause of a
+`token_exchange` failure specifically is one of:
+
+- `GOOGLE_CLIENT_SECRET` in Vercel doesn't match the current secret for
+  `GOOGLE_CLIENT_ID` in Google Cloud Console (e.g. it was rotated there but
+  not updated in Vercel).
+- `APP_URL` in Vercel doesn't exactly match a URI in the OAuth client's
+  **Authorized redirect URIs** list (scheme, host, and trailing slash all
+  matter) for the environment actually being tested (production vs.
+  preview each need their own domain registered).
+
+`lib/auth/google.ts` logs the exact response body Google returned
+(`invalid_client`, `redirect_uri_mismatch`, etc.) right above the stage
+line — that error code is the fastest way to tell which of the two it is.
+
 ## 5. Upload size limit
 
 Vercel serverless functions hard-cap request bodies at **4.5 MB** — this is
