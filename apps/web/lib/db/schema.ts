@@ -25,6 +25,28 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"),
   googleId: text("google_id").unique(),
   name: text("name"),
+  /**
+   * AES-256-GCM ciphertext of the TOTP secret (see lib/auth/totp.ts),
+   * base64 `iv:tag:ciphertext`. Encrypted, not hashed — unlike a password,
+   * the raw secret must be recoverable to check a submitted code against
+   * it. Null until 2FA setup starts.
+   */
+  totpSecretEnc: text("totp_secret_enc"),
+  /** Set only once setup is confirmed with a valid code — 2FA is "on" iff this is non-null. */
+  totpEnabledAt: timestamp("totp_enabled_at", { withTimezone: true }),
+  /** Appearance overrides (see lib/appearance.ts) — hex colors, all three or none. Null = use the Light/Dark token default. */
+  themeBackground: text("theme_background"),
+  themeAccent: text("theme_accent"),
+  themeText: text("theme_text"),
+  /** Private Blob path (see lib/blobStorage.ts's buildAvatarBlobPath) — served only via GET /api/account/avatar. Null = show the initial-letter placeholder. */
+  avatarBlobPath: text("avatar_blob_path"),
+  avatarMimeType: text("avatar_mime_type"),
+  /**
+   * Set while the account is deactivated: every session is revoked and API
+   * keys stop authenticating, but nothing is deleted. Cleared by the next
+   * successful sign-in (see createSession in lib/auth/session.ts).
+   */
+  deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -56,6 +78,47 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
+
+/**
+ * One-time recovery codes for 2FA, issued as a batch whenever setup is
+ * confirmed (replacing any previous batch). Hashed the same way API keys
+ * are (HMAC with TOKEN_PEPPER) — they're a bearer credential, not a
+ * password, and are shown to the user exactly once at issuance.
+ */
+export const backupCodes = pgTable(
+  "backup_codes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("backup_codes_user_id_idx").on(table.userId)]
+);
+
+/**
+ * A pending email change: the code is sent to the *new* address, so the
+ * change only takes effect once that address is proven reachable. The
+ * user's actual `email` column is untouched until `confirm` succeeds.
+ */
+export const emailChangeTokens = pgTable(
+  "email_change_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    newEmail: text("new_email").notNull(),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (table) => [index("email_change_tokens_user_id_idx").on(table.userId)]
+);
 
 export const collections = pgTable(
   "collections",
@@ -122,6 +185,28 @@ export const conversions = pgTable(
   ]
 );
 
+/**
+ * A /convert workspace session — one per tab/visit, addressed by URL
+ * (`/convert/{id}`). The id is minted before the row exists (see
+ * app/(app)/convert/page.tsx), and the row is only inserted by the first
+ * conversion that names it, so opening a tab and leaving it empty writes
+ * nothing. `updated_at` is bumped on every conversion, for "most recent
+ * session" ordering. The attempts themselves are the `jobs` rows pointing
+ * here via `jobs.session_id`.
+ */
+export const convertSessions = pgTable(
+  "convert_sessions",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("convert_sessions_user_id_updated_at_idx").on(table.userId, table.updatedAt)]
+);
+
 export const JOB_STATUSES = [
   "queued",
   "processing",
@@ -155,6 +240,10 @@ export const jobs = pgTable(
     conversionId: uuid("conversion_id").references(() => conversions.id, {
       onDelete: "set null",
     }),
+    /** The /convert session this attempt was made from. Null for API jobs. */
+    sessionId: uuid("session_id").references(() => convertSessions.id, {
+      onDelete: "set null",
+    }),
     /** The conversion type requested, e.g. "pdf-word". */
     type: text("type").notNull(),
     status: text("status").$type<JobStatus>().notNull().default("queued"),
@@ -185,6 +274,7 @@ export const jobs = pgTable(
   (table) => [
     index("jobs_user_id_created_at_idx").on(table.userId, table.createdAt),
     index("jobs_conversion_id_idx").on(table.conversionId),
+    index("jobs_session_id_created_at_idx").on(table.sessionId, table.createdAt),
     index("jobs_status_created_at_idx").on(table.status, table.createdAt),
     // Backs the stale-job reclaim query in lib/jobProcessor.ts (jobs stuck
     // "processing" past the claim lease) and a future recovery sweep.

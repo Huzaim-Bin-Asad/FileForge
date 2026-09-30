@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runConversion, ConversionError } from "@/lib/conversions";
 import { getJobIdForError } from "@/lib/jobs";
 import { getSessionUser } from "@/lib/auth/session";
+import { claimSession, isSessionId } from "@/lib/convertSessions";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const conversionType = formData.get("conversionType") as string | null;
   const collectionId = (formData.get("collectionId") as string | null) || null;
+  const sessionId = (formData.get("sessionId") as string | null) || null;
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
@@ -33,14 +35,22 @@ export async function POST(req: NextRequest) {
       { status: 413 }
     );
   }
+  if (sessionId !== null && !isSessionId(sessionId)) {
+    return NextResponse.json({ error: "Invalid session." }, { status: 400 });
+  }
 
   const inputBuffer = Buffer.from(await file.arrayBuffer());
 
   try {
     const user = await getSessionUser();
+    // Anonymous callers have nowhere to record a session, so it's dropped.
+    if (user && sessionId && !(await claimSession(user.id, sessionId))) {
+      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+    }
     const { buffer, filename, mimeType, conversionId, jobId } = await runConversion({
       userId: user?.id ?? null,
       collectionId,
+      sessionId: user ? sessionId : null,
       conversionType,
       buffer: inputBuffer,
       filename: file.name,

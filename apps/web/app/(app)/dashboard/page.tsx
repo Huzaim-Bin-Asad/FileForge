@@ -56,6 +56,7 @@ export default async function DashboardPage({
       action={
         <Link
           href="/convert"
+          prefetch={false}
           className="inline-flex items-center gap-1.5 rounded-xl bg-ember px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ember-deep"
         >
           <Plus className="h-4 w-4" strokeWidth={2.2} />
@@ -71,6 +72,7 @@ export default async function DashboardPage({
           </p>
           <Link
             href="/convert"
+            prefetch={false}
             className="mt-6 inline-flex rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-steel-soft"
           >
             Open the converter

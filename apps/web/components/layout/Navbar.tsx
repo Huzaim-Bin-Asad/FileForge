@@ -112,10 +112,10 @@ export default function Navbar({ user }: NavbarProps) {
                 Log in
               </Link>
               <Link
-                href="/dashboard"
+                href="/signup"
                 className="bg-brand rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-md shadow-ember/20 transition hover:opacity-95"
               >
-                Convert
+                Sign up
               </Link>
             </>
           )}

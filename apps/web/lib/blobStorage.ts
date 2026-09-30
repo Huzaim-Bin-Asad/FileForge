@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { BlobNotFoundError, del, get, list, put } from "@vercel/blob";
 
 /**
@@ -30,6 +31,10 @@ const CONVERSION_BLOB_PATH = new RegExp(
 // shape from the conversion path — a job id is not a conversion id, and
 // nothing here is ever a download target.
 const JOB_INPUT_BLOB_PATH = new RegExp(`^users/(${UUID})/jobs/(${UUID})/input\\.[a-z0-9]{1,10}$`);
+// A fresh random component per upload (not a stable "avatar.png"), so
+// replacing a picture is "upload new, then delete old" — same pattern as
+// everywhere else here — rather than needing `allowOverwrite`.
+const AVATAR_BLOB_PATH = new RegExp(`^users/(${UUID})/avatar-(${UUID})\\.[a-z0-9]{1,10}$`);
 const UUID_RE = new RegExp(`^${UUID}$`);
 
 export type BlobRole = "input" | "output";
@@ -129,6 +134,33 @@ export function isJobInputBlobPathFor(
   if (!pathname) return false;
   const parsed = parseJobInputBlobPath(pathname);
   return parsed?.userId === userId && parsed.jobId === jobId;
+}
+
+/** `users/{userId}/avatar-{random}.{ext}` — see the regex comment above for why it's random, not stable. */
+export function buildAvatarBlobPath({
+  userId,
+  extension,
+}: {
+  userId: string;
+  extension: string;
+}): string {
+  assertUuid(userId, "userId");
+  const ext = safeExtension(`x.${extension}`);
+  return `users/${userId}/avatar-${randomUUID()}.${ext}`;
+}
+
+export function parseAvatarBlobPath(pathname: string): { userId: string } | null {
+  const m = AVATAR_BLOB_PATH.exec(pathname);
+  return m ? { userId: m[1] } : null;
+}
+
+/** True only when `pathname` is exactly a Blob avatar path for this user. */
+export function isAvatarBlobPathFor(
+  pathname: string | null | undefined,
+  userId: string
+): pathname is string {
+  if (!pathname) return false;
+  return parseAvatarBlobPath(pathname)?.userId === userId;
 }
 
 let warnedUnconfigured = false;

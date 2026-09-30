@@ -19,6 +19,8 @@ export { ConversionError } from "@/lib/converters";
 interface RunConversionInput {
   userId: string | null;
   collectionId?: string | null;
+  /** The /convert session to record the attempt under; already claimed by the caller. */
+  sessionId?: string | null;
   conversionType: string;
   buffer: Buffer;
   filename: string;
@@ -183,13 +185,16 @@ export async function storeConversion({
 export async function runConversion({
   userId,
   collectionId = null,
+  sessionId = null,
   conversionType,
   buffer,
   filename,
   inputMimeType = null,
 }: RunConversionInput): Promise<RunConversionOutput> {
   const jobId = userId
-    ? await bestEffort("create", () => createJob({ userId, type: conversionType }))
+    ? await bestEffort("create", () =>
+        createJob({ userId, type: conversionType, sessionId, originalFilename: filename })
+      )
     : null;
   if (jobId) await bestEffort("start", () => startJob(jobId));
   const startedAt = Date.now();

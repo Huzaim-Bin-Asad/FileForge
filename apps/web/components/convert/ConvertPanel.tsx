@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   addAttempt,
   getServerSnapshot,
-  getSnapshot,
+  getSessionSnapshot,
   patchAttempt,
   subscribe,
 } from "@/lib/convert/attemptsStore";
@@ -36,6 +36,27 @@ interface CollectionRef {
   name: string;
 }
 
+/** A recorded attempt from the server (see getSessionAttempts), serialized for the client. */
+export interface ServerAttempt {
+  jobId: string;
+  filename: string;
+  targetLabel: string;
+  status: "processing" | "completed" | "failed";
+  message: string | null;
+  conversionId: string | null;
+  createdAt: string;
+}
+
+interface Row {
+  key: string;
+  filename: string;
+  targetLabel: string;
+  status: "processing" | "completed" | "failed";
+  message?: string | null;
+  conversionId?: string | null;
+  time: number;
+}
+
 const ACCEPT = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(",");
 
 function getExtension(filename: string): string {
@@ -43,22 +64,49 @@ function getExtension(filename: string): string {
   return match ? match[1]!.toLowerCase() : "";
 }
 
-export default function ConvertPanel({ collections = [] }: { collections?: CollectionRef[] }) {
+export default function ConvertPanel({
+  sessionId,
+  serverAttempts,
+  collections = [],
+}: {
+  sessionId: string;
+  serverAttempts: ServerAttempt[];
+  collections?: CollectionRef[];
+}) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [chosen, setChosen] = useState<ConversionTarget | null>(null);
   const [collectionId, setCollectionId] = useState("");
   const [error, setError] = useState<string | null>(null);
-  // Backed by a module-level store, not local state — a conversion started
-  // here keeps running (and this list keeps updating) even if the user
+  // In-flight attempts live in a module-level store keyed by session, not
+  // local state — a conversion started here keeps its entry even if the user
   // navigates away and back before it finishes. See lib/convert/attemptsStore.
-  const attempts = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const attempts = useSyncExternalStore(
+    subscribe,
+    () => getSessionSnapshot(sessionId),
+    getServerSnapshot
+  );
 
   const sourceExt = file ? getExtension(file.name) : "";
   const targets = useMemo(() => (sourceExt ? getTargetsForExtension(sourceExt) : []), [sourceExt]);
   // A file with exactly one possible output (e.g. .txt → PDF) needs no choosing.
   const target = chosen ?? (targets.length === 1 ? targets[0]! : null);
   const busy = attempts.some((a) => a.status === "processing");
+
+  // The server's rows are the record; local entries fill in what it can't
+  // show yet. A local entry drops out once its job appears server-side, and
+  // while one is still running (its job id not known yet) the server's
+  // in-progress rows are hidden so it isn't listed twice.
+  const rows = useMemo<Row[]>(() => {
+    const known = new Set(serverAttempts.map((a) => a.jobId));
+    const local: Row[] = attempts
+      .filter((a) => !a.jobId || !known.has(a.jobId))
+      .map((a) => ({ ...a, key: `local-${a.id}`, time: a.id }));
+    const server: Row[] = serverAttempts
+      .filter((a) => !(busy && a.status === "processing"))
+      .map((a) => ({ ...a, key: a.jobId, time: Date.parse(a.createdAt) }));
+    return [...local, ...server].sort((a, b) => b.time - a.time);
+  }, [attempts, serverAttempts, busy]);
 
   const collectionOptions = useMemo(
     () => [
@@ -91,19 +139,31 @@ export default function ConvertPanel({ collections = [] }: { collections?: Colle
     const id = Date.now();
     const submitted = file;
     setError(null);
-    addAttempt({ id, filename: submitted.name, targetLabel: target.targetLabel, status: "processing" });
+    addAttempt(sessionId, {
+      id,
+      filename: submitted.name,
+      targetLabel: target.targetLabel,
+      status: "processing",
+    });
 
     try {
       const formData = new FormData();
       formData.append("file", submitted);
       formData.append("conversionType", target.type);
+      formData.append("sessionId", sessionId);
       if (collectionId) formData.append("collectionId", collectionId);
 
       const response = await fetch("/api/convert", { method: "POST", body: formData });
 
+      const jobId = response.headers.get("X-Job-Id");
       if (!response.ok) {
         const data = await response.json().catch(() => ({ error: "Conversion failed." }));
-        patchAttempt(id, { status: "failed", message: data.error ?? "Conversion failed." });
+        patchAttempt(sessionId, id, {
+          status: "failed",
+          message: data.error ?? "Conversion failed.",
+          jobId,
+        });
+        router.refresh();
         return;
       }
 
@@ -119,17 +179,18 @@ export default function ConvertPanel({ collections = [] }: { collections?: Colle
       link.click();
       window.URL.revokeObjectURL(url);
 
-      patchAttempt(id, {
+      patchAttempt(sessionId, id, {
         status: "completed",
+        jobId,
         conversionId: response.headers.get("X-Conversion-Id"),
       });
       setFile(null);
       setChosen(null);
-      // Re-render the server-fetched "Recent conversions" beside the panel.
+      // Re-render the server-fetched session list and "Recent conversions".
       router.refresh();
     } catch (err) {
       console.error(err);
-      patchAttempt(id, { status: "failed", message: "Something went wrong." });
+      patchAttempt(sessionId, id, { status: "failed", message: "Something went wrong." });
     }
   }
 
@@ -233,15 +294,15 @@ export default function ConvertPanel({ collections = [] }: { collections?: Colle
 
       {file && <ReplaceFileDrop accept={ACCEPT} onFileSelect={selectFile} />}
 
-      {attempts.length > 0 && (
+      {rows.length > 0 && (
         <div className="rounded-2xl border border-line bg-surface-elevated p-5">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-muted">
             This session
           </p>
           <ul className="flex flex-col gap-2" aria-live="polite">
-            {attempts.map((a) => (
+            {rows.map((a) => (
               <li
-                key={a.id}
+                key={a.key}
                 className="flex items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
               >
                 {a.status === "processing" ? (
@@ -266,6 +327,13 @@ export default function ConvertPanel({ collections = [] }: { collections?: Colle
                       (a.conversionId ? (
                         <>
                           Completed and saved ·{" "}
+                          <a
+                            href={`/api/conversions/${a.conversionId}/download`}
+                            className="font-medium underline underline-offset-2"
+                          >
+                            Download
+                          </a>{" "}
+                          ·{" "}
                           <Link href="/history" className="font-medium underline underline-offset-2">
                             View in history
                           </Link>

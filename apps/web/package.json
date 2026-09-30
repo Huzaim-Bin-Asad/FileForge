@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "node --conditions=react-server --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"lib/**/*.test.mjs\""
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -27,12 +28,13 @@
     "lucide-react": "^1.28.0",
     "mammoth": "^1.12.0",
     "next": "16.2.12",
+    "nodemailer": "^10.0.10",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
     "pptxgenjs": "^4.0.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "resend": "^6.26.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

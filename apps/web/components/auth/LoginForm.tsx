@@ -12,12 +12,16 @@ import GoogleButton from "@/components/auth/GoogleButton";
 interface LoginFormProps {
   next?: string;
   error?: string;
+  /** Set when Google sign-in already passed but the account has 2FA on — see google/callback/route.ts. Skips straight to the code step. */
+  challenge?: string;
 }
 
-export default function LoginForm({ next, error: initialError }: LoginFormProps) {
+export default function LoginForm({ next, error: initialError, challenge }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [challengeToken, setChallengeToken] = useState<string | null>(challenge ?? null);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [loading, setLoading] = useState(false);
   const redirectTo = next && next.startsWith("/") ? next : "/dashboard";
@@ -37,6 +41,10 @@ export default function LoginForm({ next, error: initialError }: LoginFormProps)
         setError(data.error ?? "Something went wrong.");
         return;
       }
+      if (data.requires2fa) {
+        setChallengeToken(data.challenge);
+        return;
+      }
       router.push(redirectTo);
       router.refresh();
     } catch {
@@ -44,6 +52,66 @@ export default function LoginForm({ next, error: initialError }: LoginFormProps)
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleVerify(e: FormEvent) {
+    e.preventDefault();
+    if (!challengeToken) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/login/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challenge: challengeToken, code }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "Something went wrong.");
+        return;
+      }
+      router.push(redirectTo);
+      router.refresh();
+    } catch {
+      setError("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (challengeToken) {
+    return (
+      <form onSubmit={handleVerify} className="space-y-5">
+        {error && <Alert>{error}</Alert>}
+        <Input
+          label="Authentication code"
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          placeholder="123456"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoFocus
+          required
+        />
+        <p className="-mt-3 text-xs text-ink-muted">
+          Enter the 6-digit code from your authenticator app, or one of your backup codes.
+        </p>
+        <Button type="submit" loading={loading} className="w-full">
+          Verify
+        </Button>
+        <button
+          type="button"
+          onClick={() => {
+            setChallengeToken(null);
+            setCode("");
+            setError(null);
+          }}
+          className="w-full text-center text-sm font-medium text-ink-muted hover:text-ink"
+        >
+          Back
+        </button>
+      </form>
+    );
   }
 
   return (

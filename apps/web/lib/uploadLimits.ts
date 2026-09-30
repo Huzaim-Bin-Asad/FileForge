@@ -6,3 +6,8 @@
  */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 export const MAX_UPLOAD_LABEL = "4 MB";
+
+/** A profile picture has no reason to approach the conversion limit. */
+export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+export const MAX_AVATAR_LABEL = "2 MB";
+export const ACCEPTED_AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];

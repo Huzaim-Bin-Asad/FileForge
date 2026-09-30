@@ -1,72 +1,41 @@
 /**
- * A tiny external store for "conversions attempted in this browser tab".
+ * A tiny external store for conversions started from this browser tab that
+ * the server can't show yet — ones still running, or ones rejected before a
+ * job was recorded (e.g. a 413).
  *
- * ConvertPanel used to keep this in its own useState, so navigating away
- * from /convert while a conversion was still running (or right as it
- * finished) unmounted the component and threw the list away — the fetch
- * itself kept running (a client-side route change doesn't abort it), but
- * nothing was left mounted to receive the result. Coming back to /convert
- * mounted a fresh component with an empty list, so a job that had in fact
- * completed (or failed) never showed up.
+ * The durable record of a session's attempts is its `jobs` rows (see
+ * lib/convertSessions.ts), rendered server-side by /convert/[sessionId].
+ * This store only bridges the gap while a request is in flight, keyed by
+ * session so each /convert tab/URL sees just its own work.
  *
- * Moving the list here — a plain module-level singleton, subscribed to via
- * useSyncExternalStore — fixes that: it isn't tied to any component's
- * lifecycle, so ConvertPanel's handleConvert keeps writing into it
- * regardless of whether a ConvertPanel is currently mounted to see it, and
- * whichever one mounts next reads whatever's already there. Persisting to
- * localStorage extends that across a full page reload too, with one
- * caveat — see readStorage below.
+ * It's a module-level singleton read via useSyncExternalStore rather than
+ * component state, so a conversion keeps its entry if the user navigates
+ * away from the page (or to another session) and back before it finishes —
+ * the fetch keeps running across a client-side route change, and whichever
+ * ConvertPanel mounts next picks the result up. Nothing is persisted: after
+ * a reload the server's rows are the whole story.
  */
 
 export interface Attempt {
+  /** Client-side id (Date.now()), doubling as the start time. */
   id: number;
   filename: string;
   targetLabel: string;
   status: "processing" | "completed" | "failed";
   message?: string;
-  /** Set when the result was saved to history (signed-in users). */
+  /** The server job for this attempt, once known — used to dedupe against the server's list. */
+  jobId?: string | null;
+  /** Set when the result was saved to history. */
   conversionId?: string | null;
 }
 
-const STORAGE_KEY = "fileforge:convert-attempts";
-const MAX_ATTEMPTS = 10;
+const EMPTY: Attempt[] = [];
+const MAX_ATTEMPTS = 20;
 
-function readStorage(): Attempt[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // A page reload tears down the JS that was driving any "processing"
-    // entry — its fetch is gone, so nothing will ever resolve it. Only
-    // reachable here, at cold module load; a live client-side navigation
-    // never re-runs this, so a conversion that's genuinely still running
-    // is left untouched.
-    return (parsed as Attempt[]).map((a) =>
-      a.status === "processing"
-        ? { ...a, status: "failed" as const, message: "Interrupted by a page reload." }
-        : a
-    );
-  } catch {
-    return [];
-  }
-}
-
-function writeStorage(next: Attempt[]) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Best-effort — a full or blocked localStorage should never break a conversion.
-  }
-}
-
-let attempts: Attempt[] = readStorage();
+let bySession: Record<string, Attempt[]> = {};
 const listeners = new Set<() => void>();
 
 function emit() {
-  writeStorage(attempts);
   for (const listener of listeners) listener();
 }
 
@@ -75,21 +44,28 @@ export function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-export function getSnapshot(): Attempt[] {
-  return attempts;
+/** Stable per session between changes, as useSyncExternalStore requires. */
+export function getSessionSnapshot(sessionId: string): Attempt[] {
+  return bySession[sessionId] ?? EMPTY;
 }
 
-/** SSR has no localStorage and no in-flight conversions — an empty list is the correct render. */
+/** SSR has no in-flight conversions — an empty list is the correct render. */
 export function getServerSnapshot(): Attempt[] {
-  return [];
+  return EMPTY;
 }
 
-export function addAttempt(attempt: Attempt) {
-  attempts = [attempt, ...attempts].slice(0, MAX_ATTEMPTS);
+export function addAttempt(sessionId: string, attempt: Attempt) {
+  const list = bySession[sessionId] ?? EMPTY;
+  bySession = { ...bySession, [sessionId]: [attempt, ...list].slice(0, MAX_ATTEMPTS) };
   emit();
 }
 
-export function patchAttempt(id: number, patch: Partial<Attempt>) {
-  attempts = attempts.map((a) => (a.id === id ? { ...a, ...patch } : a));
+export function patchAttempt(sessionId: string, id: number, patch: Partial<Attempt>) {
+  const list = bySession[sessionId];
+  if (!list) return;
+  bySession = {
+    ...bySession,
+    [sessionId]: list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+  };
   emit();
 }

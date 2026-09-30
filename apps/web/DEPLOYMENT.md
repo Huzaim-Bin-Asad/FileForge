@@ -42,8 +42,9 @@ Set these in Vercel → Project → Settings → Environment Variables (see
 | `APP_URL` | Yes | Your production URL, e.g. `https://fileforge.vercel.app` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Only if Google sign-in is enabled | See step 4 |
 | `BLOB_READ_WRITE_TOKEN` | Yes (for file storage) | Vercel Blob → create a **private** store and connect it to the project; Vercel injects this. Server-only. Without it, new conversions fall back to Postgres bytea |
-| `RESEND_API_KEY` | Recommended | Without it, password-reset links only appear in function logs |
-| `EMAIL_FROM` | Recommended | Must be on a domain verified in Resend |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | Recommended | Gmail: `smtp.gmail.com` / `465` / `true`. Without SMTP configured, password-reset links and email-change codes only appear in function logs |
+| `SMTP_USER` / `SMTP_PASSWORD` | Recommended | Gmail address + a Google App Password (requires 2-Step Verification). Server-only |
+| `EMAIL_FROM` | Recommended | e.g. `FileForge <you@gmail.com>`; defaults to `FileForge <SMTP_USER>`. Gmail only sends as `SMTP_USER` (or a verified alias) |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Optional | Rate-limits login/signup/forgot-password; silently skipped if unset |
 
 ## 4. Google OAuth redirect URI
@@ -124,7 +125,7 @@ project:
 - [ ] Migrations applied to the production database
 - [ ] All required env vars set for the Production (and Preview, if used) environment
 - [ ] Google OAuth redirect URI updated with the real domain
-- [ ] Resend sender domain verified (or accept reset links only reaching logs)
+- [ ] SMTP credentials set (or accept reset links only reaching logs)
 - [ ] Vercel Queues enabled on the project (see §7)
 - [ ] Sign up, log in, convert a file, and request a password reset once against the deployed URL
 - [ ] `POST /api/v1/convert` with an API key returns 202, and `GET /api/v1/jobs/:id` reaches "completed"

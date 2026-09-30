@@ -27,13 +27,19 @@ const elapsedSinceStartMs = sql<number | null>`
 export async function createJob({
   userId,
   type,
+  sessionId = null,
+  originalFilename = null,
 }: {
   userId: string;
   type: string;
+  /** The /convert session this attempt belongs to — see lib/convertSessions.ts. */
+  sessionId?: string | null;
+  /** Recorded so a failed attempt can still be listed by name. */
+  originalFilename?: string | null;
 }): Promise<string> {
   const [row] = await db
     .insert(jobs)
-    .values({ userId, type: type.slice(0, MAX_TYPE_LENGTH) })
+    .values({ userId, type: type.slice(0, MAX_TYPE_LENGTH), sessionId, originalFilename })
     .returning({ id: jobs.id });
   return row!.id;
 }

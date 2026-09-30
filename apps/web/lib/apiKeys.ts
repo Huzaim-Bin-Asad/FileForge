@@ -1,7 +1,7 @@
 import { randomBytes, createHmac } from "crypto";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { apiKeys } from "@/lib/db/schema";
+import { apiKeys, users } from "@/lib/db/schema";
 
 const PREFIX = "ff_live_";
 
@@ -45,7 +45,16 @@ export async function authenticateApiKey(key: string): Promise<{ userId: string 
   const [row] = await db
     .select({ id: apiKeys.id, userId: apiKeys.userId })
     .from(apiKeys)
-    .where(and(eq(apiKeys.keyHash, hashApiKey(key)), isNull(apiKeys.revokedAt)))
+    // A deactivated account's keys stay on file (reactivating restores
+    // them) but don't authenticate in the meantime.
+    .innerJoin(users, eq(users.id, apiKeys.userId))
+    .where(
+      and(
+        eq(apiKeys.keyHash, hashApiKey(key)),
+        isNull(apiKeys.revokedAt),
+        isNull(users.deactivatedAt)
+      )
+    )
     .limit(1);
 
   if (!row) return null;

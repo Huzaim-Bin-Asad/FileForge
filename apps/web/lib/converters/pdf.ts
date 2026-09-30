@@ -25,6 +25,48 @@ const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
 const MARGIN = 56;
 
+/**
+ * ASCII stand-ins for common symbols outside WinAnsi, the only encoding the
+ * built-in standard fonts support. Smart quotes, dashes, bullets, ellipsis
+ * and € are already in WinAnsi, so they don't need entries here.
+ */
+const WINANSI_FALLBACKS: Record<string, string> = {
+  "→": "->",
+  "←": "<-",
+  "↔": "<->",
+  "⇒": "=>",
+  "⇐": "<=",
+  "↑": "^",
+  "↓": "v",
+  "≤": "<=",
+  "≥": ">=",
+  "≠": "!=",
+  "≈": "~",
+  "−": "-",
+  "✓": "v",
+  "✔": "v",
+  "✗": "x",
+  "✘": "x",
+  "\t": "    ",
+};
+
+/**
+ * Makes text drawable with a standard font: known symbols get ASCII
+ * stand-ins, anything else the font can't encode becomes "?". Without this,
+ * pdf-lib throws on the first unencodable character and the whole
+ * conversion fails.
+ */
+function toEncodable(text: string, supported: Set<number>): string {
+  let out = "";
+  for (const char of text) {
+    const fallback = WINANSI_FALLBACKS[char];
+    if (fallback !== undefined) out += fallback;
+    else if (supported.has(char.codePointAt(0)!)) out += char;
+    else out += "?";
+  }
+  return out;
+}
+
 function wrapLine(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   if (!text) return [""];
 
@@ -51,6 +93,8 @@ export async function renderLinesToPdf(blocks: RenderLine[]): Promise<Buffer> {
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const maxWidth = PAGE_WIDTH - MARGIN * 2;
+  // Helvetica and Helvetica-Bold share the same WinAnsi character set.
+  const supported = new Set(regularFont.getCharacterSet());
 
   let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   let y = PAGE_HEIGHT - MARGIN;
@@ -63,7 +107,7 @@ export async function renderLinesToPdf(blocks: RenderLine[]): Promise<Buffer> {
 
     const size = block.size ?? 11;
     const font = block.bold ? boldFont : regularFont;
-    const wrapped = wrapLine(block.text, font, size, maxWidth);
+    const wrapped = wrapLine(toEncodable(block.text, supported), font, size, maxWidth);
 
     for (const line of wrapped) {
       if (y < MARGIN + size) {

@@ -1,4 +1,4 @@
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { usageEvents, USAGE_EVENT_TYPES, type UsageEventType } from "@/lib/db/schema";
 
@@ -154,4 +154,79 @@ export async function getCurrentBillingPeriodUsage(
   const [periodStart, periodEnd] = utcMonthRange(now.getUTCFullYear(), now.getUTCMonth() + 1);
   const usage = await getUsageInRange(userId, periodStart, periodEnd);
   return { periodStart, periodEnd, usage };
+}
+
+export interface UsageSession {
+  /** Id of the session's newest event — stable enough for a React key. */
+  id: string;
+  start: Date;
+  end: Date;
+  totals: Record<UsageEventType, number>;
+}
+
+/**
+ * Collapses a newest-first event log into activity sessions: consecutive
+ * events belong to the same session until there's a quiet gap longer than
+ * `gapMs`. Gap-based rather than fixed clock buckets, so a burst of work
+ * spanning e.g. 11:08–11:12 isn't split in two at 11:10.
+ *
+ * Pass `truncated` when `events` was cut off by a query limit: the oldest
+ * session may then be missing events, so it's dropped rather than shown
+ * with understated totals.
+ */
+export function groupUsageIntoSessions(
+  events: UsageEventRow[],
+  { gapMs = 10 * 60 * 1000, truncated = false }: { gapMs?: number; truncated?: boolean } = {}
+): UsageSession[] {
+  const sessions: UsageSession[] = [];
+  let current: UsageSession | null = null;
+
+  for (const e of events) {
+    if (!current || current.start.getTime() - e.createdAt.getTime() > gapMs) {
+      current = {
+        id: e.id,
+        start: e.createdAt,
+        end: e.createdAt,
+        totals: { file_processed: 0, api_request: 0, bandwidth: 0, storage: 0, processing_time: 0 },
+      };
+      sessions.push(current);
+    }
+    current.start = e.createdAt;
+    current.totals[e.type] += e.amount;
+  }
+
+  if (truncated && sessions.length > 1) sessions.pop();
+  return sessions;
+}
+
+export interface UsageEventRow {
+  id: string;
+  jobId: string | null;
+  type: UsageEventType;
+  amount: number;
+  unit: string;
+  createdAt: Date;
+}
+
+/**
+ * The raw, per-event log behind the aggregates above — one row per metered
+ * event, newest first, for a "what happened and when" view (Settings >
+ * Usage & Billing) rather than just a monthly total. Never selects
+ * `metadata`, same reasoning as `getUsageInRange`.
+ */
+export async function listRecentUsageEvents(userId: string, limit = 50): Promise<UsageEventRow[]> {
+  const rows = await db
+    .select({
+      id: usageEvents.id,
+      jobId: usageEvents.jobId,
+      type: usageEvents.type,
+      amount: usageEvents.amount,
+      unit: usageEvents.unit,
+      createdAt: usageEvents.createdAt,
+    })
+    .from(usageEvents)
+    .where(eq(usageEvents.userId, userId))
+    .orderBy(desc(usageEvents.createdAt))
+    .limit(limit);
+  return rows;
 }

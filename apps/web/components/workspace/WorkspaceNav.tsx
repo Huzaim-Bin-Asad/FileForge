@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/convert", label: "Convert", Icon: ArrowLeftRight },
+  // No prefetch: /convert mints a new session id per request (see
+  // app/(app)/convert/page.tsx), and a cached redirect would reuse one.
+  { href: "/convert", label: "Convert", Icon: ArrowLeftRight, prefetch: false },
   { href: "/history", label: "History", Icon: History },
   { href: "/collections", label: "Collections", Icon: FolderOpen },
   { href: "/api-keys", label: "API Keys", Icon: KeyRound },
@@ -57,12 +59,13 @@ export function WorkspaceSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-3 pb-5">
-        {nav.map(({ href, label, Icon }) => {
+        {nav.map(({ href, label, Icon, prefetch }) => {
           const active = isActive(pathname, href);
           return (
             <Link
               key={href}
               href={href}
+              prefetch={prefetch}
               aria-current={active ? "page" : undefined}
               title={collapsed ? label : undefined}
               className={cn(
@@ -88,12 +91,13 @@ export function WorkspaceTabs() {
   const pathname = usePathname();
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface-elevated px-3 py-2 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {nav.map(({ href, label, Icon }) => {
+      {nav.map(({ href, label, Icon, prefetch }) => {
         const active = isActive(pathname, href);
         return (
           <Link
             key={href}
             href={href}
+            prefetch={prefetch}
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",

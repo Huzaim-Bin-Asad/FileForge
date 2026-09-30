@@ -47,6 +47,19 @@ export function getTargetsForExtension(ext: string): ConversionTarget[] {
   return targets;
 }
 
+/**
+ * The output label for a recorded attempt. Pairs run both ways (a .md file
+ * sent as "word-markdown" becomes Word), so the direction comes from the
+ * uploaded filename; without a usable one, assume the pair's forward order.
+ */
+export function getTargetLabel(type: string, filename: string | null): string {
+  const pair = CONVERSION_PAIRS.find((p) => p.type === type);
+  if (!pair) return type;
+  const sourceExt = normalizeExtension(filename?.match(/\.([^.]+)$/)?.[1] ?? "");
+  const targetExt = pair.extensions[pair.extensions.indexOf(sourceExt) === 1 ? 0 : 1];
+  return pair.labels[targetExt]!;
+}
+
 export const ACCEPTED_EXTENSIONS = Array.from(
   new Set(CONVERSION_PAIRS.flatMap((p) => p.extensions).concat(Object.keys(EXTENSION_ALIASES)))
 ).sort();

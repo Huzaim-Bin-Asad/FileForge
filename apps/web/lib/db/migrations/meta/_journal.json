@@ -57,6 +57,27 @@
       "when": 1790127307378,
       "tag": "0007_jobs_async_processing",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790518926809,
+      "tag": "0008_lush_pepper_potts",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790576693600,
+      "tag": "0009_spicy_johnny_blaze",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790703822917,
+      "tag": "0010_convert_sessions",
+      "breakpoints": true
     }
   ]
 }

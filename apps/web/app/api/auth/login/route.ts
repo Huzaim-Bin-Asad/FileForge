@@ -5,6 +5,7 @@ import { users } from "@/lib/db/schema";
 import { loginSchema } from "@/lib/auth/validation";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
+import { signTwoFactorChallenge } from "@/lib/auth/twoFactorChallenge";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
@@ -42,6 +43,14 @@ export async function POST(req: NextRequest) {
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 });
+  }
+
+  // Password alone isn't enough for a 2FA-enabled account — no session yet,
+  // just a short-lived proof that this factor passed. The client submits it
+  // plus a TOTP/backup code to /api/auth/login/2fa to actually sign in.
+  if (user.totpEnabledAt) {
+    const challenge = await signTwoFactorChallenge(user.id);
+    return NextResponse.json({ requires2fa: true, challenge });
   }
 
   await createSession({ id: user.id, email: user.email });

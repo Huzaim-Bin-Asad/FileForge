@@ -9,6 +9,7 @@ import {
   getGoogleClientConfig,
 } from "@/lib/auth/google";
 import { createSession } from "@/lib/auth/session";
+import { signTwoFactorChallenge } from "@/lib/auth/twoFactorChallenge";
 
 export const runtime = "nodejs";
 
@@ -110,10 +111,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const destination = nextPath.startsWith("/") ? nextPath : "/dashboard";
+
+    // Google gets someone past the *first* factor, same as a password does
+    // — an account with 2FA enabled still needs its second one, so this
+    // sends them to the same code-entry step login/route.ts's password path
+    // uses, rather than creating a session directly.
+    if (user.totpEnabledAt) {
+      stage = "challenge_2fa";
+      const challenge = await signTwoFactorChallenge(user.id);
+      const url = new URL("/login", config.appUrl);
+      url.searchParams.set("challenge", challenge);
+      url.searchParams.set("next", destination);
+      return clearCookies(NextResponse.redirect(url));
+    }
+
     stage = "create_session";
     await createSession({ id: user.id, email: user.email });
 
-    const destination = nextPath.startsWith("/") ? nextPath : "/dashboard";
     const response = NextResponse.redirect(new URL(destination, config.appUrl));
     return clearCookies(response);
   } catch (err) {

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { refreshTokens, users } from "@/lib/db/schema";
 import {
@@ -26,7 +26,18 @@ const baseCookieOptions = {
   sameSite: "lax" as const,
 };
 
+/**
+ * Starts a session for someone who just fully authenticated (every sign-in
+ * path ends here). That's also what reactivates a deactivated account —
+ * signing back in is the documented way to undo deactivation. rotateSession
+ * refuses deactivated users before calling this, so a refresh can't.
+ */
 export async function createSession(user: SessionUser) {
+  await db
+    .update(users)
+    .set({ deactivatedAt: null, updatedAt: new Date() })
+    .where(and(eq(users.id, user.id), isNotNull(users.deactivatedAt)));
+
   const accessToken = await signAccessToken({ sub: user.id, email: user.email });
   const refreshToken = generateOpaqueToken();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_MAX_AGE_SECONDS * 1000);
@@ -83,7 +94,7 @@ export async function rotateSession(): Promise<boolean> {
   }
 
   const [user] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
-  if (!user) {
+  if (!user || user.deactivatedAt) {
     await clearSessionCookies();
     return false;
   }

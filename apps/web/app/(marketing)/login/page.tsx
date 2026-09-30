@@ -10,10 +10,14 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; challenge?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, challenge } = await searchParams;
 
+  // A `challenge` means Google already passed (see google/callback/route.ts)
+  // and 2FA is what's left — getSessionUser() is correctly still null here
+  // (no session exists until the code is verified), so this redirect only
+  // ever fires for an actual signed-in visit, never mid-challenge.
   const user = await getSessionUser();
   if (user) {
     // Same validation LoginForm itself uses post-login — an open `next`
@@ -23,10 +27,14 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      title="Welcome back"
-      subtitle="Log in to keep conversion history and manage your account."
+      title={challenge ? "Verify it's you" : "Welcome back"}
+      subtitle={
+        challenge
+          ? "Enter your two-factor code to finish signing in."
+          : "Log in to keep conversion history and manage your account."
+      }
     >
-      <LoginForm next={next} error={error} />
+      <LoginForm next={next} error={error} challenge={challenge} />
     </AuthShell>
   );
 }
